@@ -11,11 +11,11 @@ enum UpdateInstaller {
 
         var errorDescription: String? {
             switch self {
-            case .checksumMismatch: "下载的文件校验失败，可能已损坏，请重试。"
-            case .badArchive: "安装包无法解压。"
-            case .wrongApp: "安装包里的应用与当前应用不符。"
-            case .notWritable(let folder): "没有权限写入“\(folder)”，请把 iTaskManager 放到“应用程序”文件夹后再更新。"
-            case .swapFailed: "无法启动安装。"
+            case .checksumMismatch: L("下载的文件校验失败，可能已损坏，请重试。")
+            case .badArchive: L("安装包无法解压。")
+            case .wrongApp: L("安装包里的应用与当前应用不符。")
+            case .notWritable(let folder): L("没有权限写入“\(folder)”，请把 iTaskManager 放到“应用程序”文件夹后再更新。")
+            case .swapFailed: L("无法启动安装。")
             }
         }
     }

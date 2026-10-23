@@ -88,6 +88,7 @@ struct ProcessGrouper {
             cpu: Self.sum(group.map(basis.percent)).map { Self.round($0, to: 0.1) },
             memory: Self.sum(group.map(\.memory)).map { $0 / 1_048_576 * 1_048_576 },
             power: Self.sum(group.map(\.power)).map { Self.round($0, to: 0.001) },
+            energy: Self.sum(group.map(\.energy)).map { Self.round($0, to: 0.36) },
             disk: Self.sum(group.map(\.disk)).map { Self.round($0, to: 104_857.6) },
             pShare: basis.performanceShare(of: group).map { Self.round($0, to: 0.01) }
         )

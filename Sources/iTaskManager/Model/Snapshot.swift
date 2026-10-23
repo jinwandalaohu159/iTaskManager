@@ -98,6 +98,9 @@ struct ProcessStats: Sendable, Identifiable {
     var pTimeRate: Double?
     var memory: UInt64?
     var power: Double?
+    /// Joules used over the last hour (see `EnergyLedger`), including helpers it was
+    /// responsible for that have since quit.
+    var energy: Double?
     /// Bytes per second, read + write.
     var disk: Double?
 }
@@ -113,4 +116,6 @@ struct Snapshot: Sendable {
     /// The processes were read through the root helper, so system ones are included. A few
     /// may still lack figures: ones that started or ended between the helper's read and ours.
     var processesPrivileged = false
+    /// How far back the processes' `energy` reaches, up to an hour.
+    var processEnergySpan: TimeInterval?
 }

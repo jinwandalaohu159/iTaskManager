@@ -46,5 +46,6 @@ private extension View {
             .environment(monitor)
             .environment(updater)
             .environment(\.smoothMotion, settings.smoothMotion)
+            .environment(\.locale, settings.language.locale)
     }
 }

@@ -9,11 +9,11 @@ struct UpdateToolbarButton: View {
             Button {
                 updater.presentsSheet = true
             } label: {
-                Label("更新到 \(release.version.description)", systemImage: "arrow.down.circle.fill")
+                Label(L("更新到 \(release.version.description)"), systemImage: "arrow.down.circle.fill")
                     .labelStyle(.titleAndIcon)
             }
             .tint(.accentColor)
-            .help("下载并安装 iTaskManager \(release.version.description)，完成后自动重新启动")
+            .help(L("下载并安装 iTaskManager \(release.version.description)，完成后自动重新启动"))
         }
     }
 }

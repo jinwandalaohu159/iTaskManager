@@ -32,6 +32,8 @@ final class SystemMonitor {
     let processes = ProcessStore()
     /// Who holds the used memory, from the same process sample; nil while processes aren't sampled.
     private(set) var memoryAttribution: MemoryAttribution?
+    /// How many minutes back the apps' energy figures reach, up to an hour.
+    private(set) var energyMinutes: Int?
 
     /// When the latest sample landed and the spacing between samples; charts glide on this clock.
     private(set) var lastSampleDate = Date()
@@ -155,6 +157,8 @@ final class SystemMonitor {
             processes.update(with: sampled, options: ProcessGrouper.Options(settings: settings, chip: chip))
             let attribution = MemoryAttribution(processes: sampled, complete: snapshot.processesPrivileged)
             if attribution != memoryAttribution { memoryAttribution = attribution }
+            let minutes = snapshot.processEnergySpan.map { min(Int($0 / 60), 60) }
+            if minutes != energyMinutes { energyMinutes = minutes }
         }
     }
 

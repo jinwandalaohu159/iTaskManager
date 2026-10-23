@@ -57,7 +57,7 @@ final class Updater {
             available = nil
             phase = .idle
         } catch {
-            phase = .failed("检查更新失败：\(error.localizedDescription)")
+            phase = .failed(L("检查更新失败：\(error.localizedDescription)"))
         }
         lastChecked = .now
     }

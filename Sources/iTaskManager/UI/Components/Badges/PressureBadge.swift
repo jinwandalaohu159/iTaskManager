@@ -6,12 +6,12 @@ struct PressureBadge: View {
 
     var body: some View {
         let (label, symbol, color): (String, String, Color) = switch pressure {
-        case .normal: ("正常", "checkmark.circle.fill", Palette.good)
-        case .warning: ("偏高", "exclamationmark.triangle.fill", Palette.warning)
-        case .critical: ("紧张", "xmark.octagon.fill", Palette.critical)
+        case .normal: (L("正常"), "checkmark.circle.fill", Palette.good)
+        case .warning: (L("偏高"), "exclamationmark.triangle.fill", Palette.warning)
+        case .critical: (L("紧张"), "xmark.octagon.fill", Palette.critical)
         }
         Label {
-            Text("内存压力 \(label)")
+            Text(L("内存压力 \(label)"))
         } icon: {
             Image(systemName: symbol).foregroundStyle(color)
         }

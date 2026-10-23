@@ -21,6 +21,8 @@ struct ProcessRow: Identifiable, Equatable {
     var cpu: Double?
     var memory: UInt64?
     var power: Double?
+    /// Joules over the last hour.
+    var energy: Double?
     var disk: Double?
     /// Share of recent CPU time spent on performance cores; nil when the process was idle.
     var pShare: Double?
@@ -36,7 +38,7 @@ struct ProcessRow: Identifiable, Equatable {
 
     static func == (a: ProcessRow, b: ProcessRow) -> Bool {
         a.id == b.id && a.name == b.name && a.isApp == b.isApp && a.icon == b.icon
-            && a.cpu == b.cpu && a.memory == b.memory && a.power == b.power && a.disk == b.disk
+            && a.cpu == b.cpu && a.memory == b.memory && a.power == b.power && a.energy == b.energy && a.disk == b.disk
             && a.pShare == b.pShare && a.children == b.children
     }
 }
@@ -98,12 +100,15 @@ struct ProcessTree {
 /// What a "top apps" list ranks by.
 enum ProcessMetric: CaseIterable {
     case cpu, memory, power
+    /// Energy used over the last hour, rather than power right now.
+    case energy
 
     func value(of row: ProcessRow) -> Double {
         switch self {
         case .cpu: row.cpu ?? 0
         case .memory: Double(row.memory ?? 0)
         case .power: row.power ?? 0
+        case .energy: row.energy ?? 0
         }
     }
 }

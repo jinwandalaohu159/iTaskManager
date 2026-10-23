@@ -13,9 +13,9 @@ final class AppSettings {
 
         var title: String {
             switch self {
-            case .system: "跟随系统"
-            case .light: "浅色"
-            case .dark: "深色"
+            case .system: L("跟随系统")
+            case .light: L("浅色")
+            case .dark: L("深色")
             }
         }
     }
@@ -31,8 +31,8 @@ final class AppSettings {
 
         var title: String {
             switch self {
-            case .machine: "占整机"
-            case .singleCore: "占单核"
+            case .machine: L("占整机")
+            case .singleCore: L("占单核")
             }
         }
     }
@@ -40,6 +40,13 @@ final class AppSettings {
     static let refreshIntervals: [Double] = [0.5, 1, 2, 5]
 
     // General
+    /// Interface language; English unless chosen otherwise.
+    var language: AppLanguage {
+        didSet {
+            store(language.rawValue, Key.language)
+            Localizer.shared.language = language
+        }
+    }
     var openWindowAtLaunch: Bool { didSet { store(openWindowAtLaunch, Key.openWindowAtLaunch) } }
     var defaultPage: Page { didSet { store(defaultPage.rawValue, Key.defaultPage) } }
     var appearance: Appearance {
@@ -79,6 +86,9 @@ final class AppSettings {
         self.defaults = defaults
         func bool(_ key: String, _ fallback: Bool) -> Bool { defaults.object(forKey: key) as? Bool ?? fallback }
 
+        let language = defaults.string(forKey: Key.language).flatMap(AppLanguage.init(rawValue:)) ?? .english
+        self.language = language
+        Localizer.shared.language = language
         openWindowAtLaunch = bool(Key.openWindowAtLaunch, true)
         defaultPage = defaults.string(forKey: Key.defaultPage).flatMap(Page.init(rawValue:)) ?? .overview
         appearance = defaults.string(forKey: Key.appearance).flatMap(Appearance.init(rawValue:)) ?? .system
@@ -117,6 +127,7 @@ final class AppSettings {
     }
 
     private enum Key {
+        static let language = "language"
         static let openWindowAtLaunch = "openWindowAtLaunch"
         static let defaultPage = "defaultPage"
         static let appearance = "appearance"

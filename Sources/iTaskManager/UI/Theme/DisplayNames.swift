@@ -1,7 +1,7 @@
 /// How model values are named and drawn on screen, shared by every page and the menu bar.
 
 extension CoreKind {
-    var title: String { self == .performance ? "性能核" : "能效核" }
+    var title: String { self == .performance ? L("性能核") : L("能效核") }
     /// Prefix of a single core's label: P1, P2… / E1, E2…
     var prefix: String { self == .performance ? "P" : "E" }
 }
@@ -21,9 +21,9 @@ extension BatteryStats {
     }
 
     var stateLabel: String {
-        if isFullyCharged && isPluggedIn { return "已充满" }
-        if isCharging { return "正在充电" }
-        if isPluggedIn { return "已接通电源" }
-        return "使用电池"
+        if isFullyCharged && isPluggedIn { return L("已充满") }
+        if isCharging { return L("正在充电") }
+        if isPluggedIn { return L("已接通电源") }
+        return L("使用电池")
     }
 }

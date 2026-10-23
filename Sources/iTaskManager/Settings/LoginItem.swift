@@ -14,7 +14,7 @@ enum LoginItem {
             }
             return nil
         } catch {
-            return "设置失败：\(error.localizedDescription)。请先把应用移到“应用程序”文件夹。"
+            return L("设置失败：\(error.localizedDescription)。请先把应用移到“应用程序”文件夹。")
         }
     }
 }

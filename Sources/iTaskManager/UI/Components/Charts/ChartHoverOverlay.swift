@@ -52,7 +52,7 @@ struct ChartHoverOverlay: View {
     private func tooltip(index: Int, count: Int) -> some View {
         let secondsAgo = Int((Double(count - 1 - index) * interval).rounded())
         return VStack(alignment: .leading, spacing: 4) {
-            Text(secondsAgo == 0 ? "现在" : "\(secondsAgo) 秒前")
+            Text(secondsAgo == 0 ? L("现在") : L("\(secondsAgo) 秒前"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ForEach(series) { s in

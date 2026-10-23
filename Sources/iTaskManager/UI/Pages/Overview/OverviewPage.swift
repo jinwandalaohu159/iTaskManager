@@ -35,7 +35,7 @@ private struct OverviewHeader: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(chip.name)
                 .font(.system(size: 26, weight: .bold))
-            Text("\(chip.hostName) · \(chip.coreKinds.count) 核 CPU（\(chip.performanceCount) 性能核 + \(chip.efficiencyCount) 能效核）· \(chip.gpuCores) 核 GPU · \(Fmt.bytes(chip.memoryBytes)) 统一内存 · macOS \(chip.osVersion)")
+            Text(L("\(chip.hostName) · \(chip.coreKinds.count) 核 CPU（\(chip.performanceCount) 性能核 + \(chip.efficiencyCount) 能效核）· \(chip.gpuCores) 核 GPU · \(Fmt.bytes(chip.memoryBytes)) 统一内存 · macOS \(chip.osVersion)"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
@@ -50,7 +50,7 @@ private struct MemorySummaryCard: View {
         let memory = monitor.memory
         Card {
             VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(title: "内存") {
+                SectionHeader(title: L("内存")) {
                     if let memory { PressureBadge(pressure: memory.pressure) }
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -73,17 +73,17 @@ private struct PowerSummaryCard: View {
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(title: "能耗") {
+                SectionHeader(title: L("能耗")) {
                     if let battery = monitor.battery { BatterySummary(battery: battery) }
                 }
                 if let power = monitor.power, let total = monitor.systemWatts {
                     VStack(alignment: .leading, spacing: 2) {
                         LiveNumber(text: Fmt.wattsFixed(total), value: total)
-                        Text("整机功耗").font(.callout).foregroundStyle(.secondary)
+                        Text(L("整机功耗")).font(.callout).foregroundStyle(.secondary)
                     }
                     PowerBreakdown(power: power)
                 } else {
-                    Text("此 Mac 不支持功耗读取").foregroundStyle(.secondary)
+                    Text(L("此 Mac 不支持功耗读取")).foregroundStyle(.secondary)
                 }
             }
         }
@@ -97,8 +97,8 @@ private struct TopAppsCard: View {
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: 12) {
-                SectionHeader(title: "占用最高的应用", subtitle: "按 CPU 排序") {
-                    Button("全部进程") { navigate(.processes) }
+                SectionHeader(title: L("占用最高的应用"), subtitle: L("按 CPU 排序")) {
+                    Button(L("全部进程")) { navigate(.processes) }
                         .buttonStyle(.link)
                 }
                 TopAppsList(metric: .cpu, limit: 6)

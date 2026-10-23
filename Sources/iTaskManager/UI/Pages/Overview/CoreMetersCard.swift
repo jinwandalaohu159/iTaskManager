@@ -10,8 +10,8 @@ struct CoreMetersCard: View {
         let usage = monitor.cpu?.perCore ?? Array(repeating: 0, count: chip.coreKinds.count)
         Card {
             VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(title: "CPU 核心", subtitle: "\(chip.coreKinds.count) 核") {
-                    Button("详情") { navigate(.processor) }
+                SectionHeader(title: L("CPU 核心"), subtitle: L("\(chip.coreKinds.count) 核")) {
+                    Button(L("详情")) { navigate(.processor) }
                         .buttonStyle(.link)
                 }
                 // Every core gets an equal column, so the two groups fill the row in proportion.

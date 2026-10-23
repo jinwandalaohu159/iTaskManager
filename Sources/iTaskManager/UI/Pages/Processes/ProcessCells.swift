@@ -49,6 +49,6 @@ struct CoreShareCell: View {
         }
         .frame(width: 94)
         .frame(maxWidth: .infinity)
-        .help(pShare.map { "性能核 \(Fmt.percent($0)) · 能效核 \(Fmt.percent(1 - $0))" } ?? "最近没有占用 CPU")
+        .help(pShare.map { L("性能核 \(Fmt.percent($0)) · 能效核 \(Fmt.percent(1 - $0))") } ?? L("最近没有占用 CPU"))
     }
 }

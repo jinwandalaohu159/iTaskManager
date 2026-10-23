@@ -5,7 +5,7 @@ extension ProcessMetric {
         switch self {
         case .cpu: Palette.cpu
         case .memory: Palette.memory
-        case .power: Palette.power
+        case .power, .energy: Palette.power
         }
     }
 
@@ -14,6 +14,7 @@ extension ProcessMetric {
         case .cpu: row.cpu.map { Fmt.cpu($0) + "%" } ?? "—"
         case .memory: row.memory.map(Fmt.bytes) ?? "—"
         case .power: row.power.map(Fmt.watts) ?? "—"
+        case .energy: row.energy.map(Fmt.energy) ?? "—"
         }
     }
 }
@@ -41,8 +42,9 @@ struct TopAppsList: View {
                 HStack(spacing: 12) {
                     ProcessIconView(icon: row.icon, size: 18)
                     if showsBars {
+                        // Narrows in a small window rather than pushing the card wider.
                         Text(row.name).lineLimit(1).truncationMode(.tail)
-                            .frame(width: 190, alignment: .leading)
+                            .frame(minWidth: 100, idealWidth: 190, maxWidth: 190, alignment: .leading)
                         UsageBar(value: metric.value(of: row) / peak, color: metric.color, height: 6)
                     } else {
                         Text(row.name).lineLimit(1).truncationMode(.tail)

@@ -21,15 +21,15 @@ struct MainWindow: View {
     private var splitView: some View {
         NavigationSplitView(columnVisibility: $columns) {
             List(selection: $page) {
-                Section("监视") {
+                Section(L("监视")) {
                     ForEach(Page.monitoring) { item in
                         Label(item.title, systemImage: item.symbol).tag(item)
                     }
                 }
-                Section("管理") {
+                Section(L("管理")) {
                     Label(Page.processes.title, systemImage: Page.processes.symbol).tag(Page.processes)
                 }
-                Section("应用") {
+                Section(L("应用", context: "sidebar")) {
                     Label(Page.settings.title, systemImage: Page.settings.symbol).tag(Page.settings)
                 }
             }

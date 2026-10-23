@@ -13,7 +13,7 @@ struct MenuBarPanel: View {
 
             Divider()
             VStack(alignment: .leading, spacing: 6) {
-                Text("占用最高的应用").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Text(L("占用最高的应用")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 TopAppsList(metric: .cpu, limit: 5, showsBars: false)
             }
 

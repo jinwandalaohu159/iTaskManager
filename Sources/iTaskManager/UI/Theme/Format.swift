@@ -8,8 +8,8 @@ enum Fmt {
     static let percentPartTemplate = "00%"
     static let bytesTemplate = "00.0 GB"
     static let wattsTemplate = "000 mW"
-    static let minutesTemplate = "00 小时 00 分钟"
-    static let uptimeTemplate = "00 小时 00 分"
+    static var minutesTemplate: String { L("00 小时 00 分钟") }
+    static var uptimeTemplate: String { L("00 小时 00 分") }
 
     /// Pads with figure spaces (the width of a digit) for places that can't reserve layout
     /// space, such as the menu bar.
@@ -50,6 +50,14 @@ enum Fmt {
         return String(format: "%.2f W", value)
     }
 
+    /// Energy in joules as watt-hours: "0.4 mWh", "35 mWh", "1.2 Wh".
+    static func energy(_ joules: Double) -> String {
+        let wattHours = joules / 3600
+        if wattHours < 0.00995 { return String(format: "%.1f mWh", wattHours * 1000) }
+        if wattHours < 0.995 { return "\(Int((wattHours * 1000).rounded())) mWh" }
+        return String(format: "%.1f Wh", wattHours)
+    }
+
     /// A clock in MHz as GHz with one decimal ("2.1 GHz").
     static func gigahertz(_ megahertz: Double) -> String {
         String(format: "%.1f GHz", megahertz / 1000)
@@ -68,13 +76,13 @@ enum Fmt {
     static func uptime(since date: Date, now: Date = .now) -> String {
         let minutes = max(Int(now.timeIntervalSince(date) / 60), 0)
         let d = minutes / 1440, h = minutes / 60 % 24, m = minutes % 60
-        if d > 0 { return "\(d) 天 \(h) 小时" }
-        if h > 0 { return "\(h) 小时 \(m) 分" }
-        return "\(m) 分钟"
+        if d > 0 { return L("\(d) 天 \(h) 小时") }
+        if h > 0 { return L("\(h) 小时 \(m) 分") }
+        return L("\(m) 分钟")
     }
 
     static func minutes(_ minutes: Int) -> String {
         let h = minutes / 60, m = minutes % 60
-        return h > 0 ? "\(h) 小时 \(m) 分钟" : "\(m) 分钟"
+        return h > 0 ? L("\(h) 小时 \(m) 分钟") : L("\(m) 分钟")
     }
 }

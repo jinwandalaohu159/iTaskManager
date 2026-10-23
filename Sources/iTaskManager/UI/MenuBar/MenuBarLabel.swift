@@ -14,7 +14,7 @@ struct MenuBarLabel: View {
     private var items: [MenuBarText.Item] {
         var items: [MenuBarText.Item] = []
         if settings.menuBarCPU { items.append(.init(label: "CPU", value: percent(monitor.cpu?.total))) }
-        if settings.menuBarMemory { items.append(.init(label: "内存", value: percent(monitor.memory?.usedFraction))) }
+        if settings.menuBarMemory { items.append(.init(label: L("内存", context: "menubar"), value: percent(monitor.memory?.usedFraction))) }
         if settings.menuBarGPU { items.append(.init(label: "GPU", value: percent(monitor.gpu?.utilization))) }
         if settings.menuBarPower, let watts = monitor.systemWatts { items.append(.init(label: nil, value: Self.watts(watts))) }
         return items

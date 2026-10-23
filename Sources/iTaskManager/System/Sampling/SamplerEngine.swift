@@ -34,6 +34,8 @@ actor SamplerEngine {
                 try? await Task.sleep(for: .milliseconds(250))
             }
             processStats = processes.sample(privileged: privileged)
+        } else {
+            processes.checkpointEnergyIfDue(privileged: privileged)
         }
 
         // The battery changes slowly and its IORegistry node is comparatively expensive.
@@ -51,7 +53,8 @@ actor SamplerEngine {
             power: power.sample(),
             battery: lastBattery,
             processes: processStats,
-            processesPrivileged: processStats != nil && processes.lastSampleWasPrivileged
+            processesPrivileged: processStats != nil && processes.lastSampleWasPrivileged,
+            processEnergySpan: processes.energySpan
         )
     }
 }

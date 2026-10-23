@@ -14,13 +14,13 @@ struct PowerBreakdown: View {
             parts.append(("cpu", "CPU", Palette.cpu, power.cpu))
         }
         parts.append(("gpu", "GPU", Palette.gpu, power.gpu))
-        parts.append(("dram", "内存", Palette.memory, power.dram))
+        parts.append(("dram", L("内存"), Palette.memory, power.dram))
         if power.ane > 0.005 {
-            parts.append(("ane", "神经网络引擎", Palette.power, power.ane))
+            parts.append(("ane", L("神经网络引擎"), Palette.power, power.ane))
         }
         if let system = power.system {
             let known = parts.reduce(0) { $0 + $1.3 }
-            parts.append(("other", "屏幕及其他", Palette.other, max(system - known, 0)))
+            parts.append(("other", L("屏幕及其他"), Palette.other, max(system - known, 0)))
         }
         return parts.map { (id: $0.0, label: $0.1, color: $0.2, watts: $0.3) }
     }

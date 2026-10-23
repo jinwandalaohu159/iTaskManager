@@ -71,7 +71,7 @@ struct PanelMemoryRow: View {
     var body: some View {
         let memory = monitor.memory
         PanelMeterRow(
-            title: "内存", symbol: "memorychip",
+            title: L("内存"), symbol: "memorychip",
             value: Fmt.percent(memory?.usedFraction ?? 0),
             detail: "\(Fmt.bytes(memory?.used ?? 0)) / \(Fmt.bytes(monitor.chip.memoryBytes))",
             fraction: memory?.usedFraction ?? 0, color: Palette.memory
@@ -87,7 +87,7 @@ struct PanelGPURow: View {
         PanelMeterRow(
             title: "GPU", symbol: "square.stack.3d.up",
             value: Fmt.percent(utilization),
-            detail: "\(monitor.chip.gpuCores) 核",
+            detail: L("\(monitor.chip.gpuCores) 核"),
             fraction: utilization, color: Palette.gpu
         )
     }
@@ -124,7 +124,7 @@ struct PanelPowerSection: View {
         let power = monitor.power
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Label("功耗", systemImage: "bolt").font(.callout.weight(.medium))
+                Label(L("功耗"), systemImage: "bolt").font(.callout.weight(.medium))
                 if let power {
                     Text("CPU \(Fmt.watts(power.cpu)) · GPU \(Fmt.watts(power.gpu))")
                         .font(.caption)
@@ -152,7 +152,7 @@ struct PanelActions: View {
     var body: some View {
         HStack {
             Button(action: showMainWindow) {
-                Label("打开 iTaskManager", systemImage: "macwindow")
+                Label(L("打开 iTaskManager"), systemImage: "macwindow")
             }
             Spacer()
             if let release = updater.available {
@@ -160,7 +160,7 @@ struct PanelActions: View {
                     showMainWindow()
                     updater.presentsSheet = true
                 } label: {
-                    Label("更新到 \(release.version.description)", systemImage: "arrow.down.circle.fill")
+                    Label(L("更新到 \(release.version.description)"), systemImage: "arrow.down.circle.fill")
                 }
                 .foregroundStyle(Color.accentColor)
             }
@@ -170,13 +170,13 @@ struct PanelActions: View {
             } label: {
                 Image(systemName: "gearshape")
             }
-            .help("设置")
+            .help(L("设置"))
             Button {
                 NSApp.terminate(nil)
             } label: {
                 Image(systemName: "power")
             }
-            .help("退出")
+            .help(L("退出"))
         }
         .buttonStyle(.borderless)
     }

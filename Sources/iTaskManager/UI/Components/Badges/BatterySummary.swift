@@ -28,8 +28,8 @@ struct BatterySummary: View {
             if let minutes = battery.timeRemaining, !battery.isPluggedIn {
                 Group {
                     separator
-                    Text("剩余 \(Fmt.minutes(minutes))").monospacedDigit()
-                        .reservingWidth(of: "剩余 " + Fmt.minutesTemplate)
+                    Text(L("剩余 \(Fmt.minutes(minutes))")).monospacedDigit()
+                        .reservingWidth(of: L("剩余 \(Fmt.minutesTemplate)"))
                 }
                 .transition(.opacity)
             }

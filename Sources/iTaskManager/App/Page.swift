@@ -6,12 +6,12 @@ enum Page: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .overview: "总览"
-        case .processor: "处理器"
-        case .memory: "内存"
-        case .energy: "能耗"
-        case .processes: "进程"
-        case .settings: "设置"
+        case .overview: L("总览")
+        case .processor: L("处理器")
+        case .memory: L("内存")
+        case .energy: L("能耗")
+        case .processes: L("进程")
+        case .settings: L("设置")
         }
     }
 

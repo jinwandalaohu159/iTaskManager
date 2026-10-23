@@ -15,7 +15,7 @@ struct UpdateSheet: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("iTaskManager \(updater.available?.version.description ?? "")")
                         .font(.title3.weight(.semibold))
-                    Text("当前版本 \(AppVersion.current.description)")
+                    Text(L("当前版本 \(AppVersion.current.description)"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -38,28 +38,28 @@ struct UpdateSheet: View {
 
             HStack {
                 if let page = updater.available?.page {
-                    Link("在 GitHub 上查看", destination: page).font(.callout)
+                    Link(L("在 GitHub 上查看"), destination: page).font(.callout)
                 }
                 Spacer()
                 switch updater.phase {
                 case .downloading:
-                    Button("取消") {
+                    Button(L("取消")) {
                         updater.cancel()
                         dismiss()
                     }
                     .keyboardShortcut(.cancelAction)
                 case .failed:
-                    Button("关闭") {
+                    Button(L("关闭")) {
                         updater.dismissFailure()
                         dismiss()
                     }
                     .keyboardShortcut(.cancelAction)
-                    Button("重试") { updater.install() }
+                    Button(L("重试")) { updater.install() }
                         .keyboardShortcut(.defaultAction)
                 case .installing:
                     EmptyView()
                 default:
-                    Button("关闭") { dismiss() }
+                    Button(L("关闭")) { dismiss() }
                 }
             }
             .controlSize(.large)
@@ -77,7 +77,7 @@ struct UpdateSheet: View {
                 ProgressView(value: fraction)
                     .animation(.linear(duration: 0.2), value: fraction)
                 HStack {
-                    Text("正在下载…")
+                    Text(L("正在下载…"))
                     Spacer()
                     Text(Fmt.percent(fraction)).monospacedDigit()
                         .reservingWidth(of: Fmt.percentTemplate, alignment: .trailing)
@@ -88,7 +88,7 @@ struct UpdateSheet: View {
         case .installing:
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("正在安装，即将重新启动…")
+                Text(L("正在安装，即将重新启动…"))
             }
             .font(.callout)
             .foregroundStyle(.secondary)

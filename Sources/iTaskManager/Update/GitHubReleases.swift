@@ -22,9 +22,9 @@ enum GitHubReleases {
 
         var errorDescription: String? {
             switch self {
-            case .noRelease: "还没有发布任何版本。"
-            case .unreadable: "无法读取版本信息。"
-            case .noArchive: "最新版本缺少安装包。"
+            case .noRelease: L("还没有发布任何版本。")
+            case .unreadable: L("无法读取版本信息。")
+            case .noArchive: L("最新版本缺少安装包。")
             }
         }
     }

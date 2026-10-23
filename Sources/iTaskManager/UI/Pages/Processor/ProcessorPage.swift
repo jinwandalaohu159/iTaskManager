@@ -23,7 +23,7 @@ private struct CPUCard: View {
         let power = monitor.power
         let split = power?.hasClusterSplit == true
 
-        GaugeChartCard(title: "CPU 总占用") {
+        GaugeChartCard(title: L("CPU 总占用")) {
             RingGauge(rings: [
                 Ring(id: "p", value: chip.average(.performance, in: usage), color: Palette.pCore),
                 Ring(id: "e", value: chip.average(.efficiency, in: usage), color: Palette.eCore),
@@ -41,11 +41,11 @@ private struct CPUCard: View {
             )
         } facts: {
             InlineStats(items: [
-                .init(label: "用户", value: Fmt.percent(cpu?.user ?? 0), template: Fmt.percentPartTemplate),
-                .init(label: "系统", value: Fmt.percent(cpu?.system ?? 0), template: Fmt.percentPartTemplate),
-                .init(label: "性能核", value: cpu?.frequency[.performance].map(Fmt.gigahertz) ?? "—", template: "0.0 GHz"),
-                .init(label: "能效核", value: cpu?.frequency[.efficiency].map(Fmt.gigahertz) ?? "—", template: "0.0 GHz"),
-                .init(label: "已运行", value: Fmt.uptime(since: chip.bootDate, now: monitor.lastSampleDate), template: Fmt.uptimeTemplate),
+                .init(label: L("用户"), value: Fmt.percent(cpu?.user ?? 0), template: Fmt.percentPartTemplate),
+                .init(label: L("系统"), value: Fmt.percent(cpu?.system ?? 0), template: Fmt.percentPartTemplate),
+                .init(label: L("性能核"), value: cpu?.frequency[.performance].map(Fmt.gigahertz) ?? "—", template: "0.0 GHz"),
+                .init(label: L("能效核"), value: cpu?.frequency[.efficiency].map(Fmt.gigahertz) ?? "—", template: "0.0 GHz"),
+                .init(label: L("已运行"), value: Fmt.uptime(since: chip.bootDate, now: monitor.lastSampleDate), template: Fmt.uptimeTemplate),
             ])
             .font(.callout)
         } chart: {
@@ -67,7 +67,7 @@ private struct PerCoreCard: View {
         let ceiling = fractionCeiling(monitor.coreHistories.flatMap(\.values))
         Card(padding: 20) {
             VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(title: "每个核心", subtitle: "最近 60 秒 · 纵轴 0–\(Fmt.percent(ceiling))")
+                SectionHeader(title: L("每个核心"), subtitle: L("最近 60 秒 · 纵轴 0–\(Fmt.percent(ceiling))"))
                 // Both clusters share one height, so the fewer performance cores get taller rows.
                 HStack(alignment: .top, spacing: 24) {
                     column(.performance, ceiling: ceiling)
@@ -104,18 +104,18 @@ private struct GPUCard: View {
 
     var body: some View {
         let gpu = monitor.gpu
-        GaugeChartCard(title: "GPU 利用率") {
+        GaugeChartCard(title: L("GPU 利用率")) {
             RingGauge(rings: [Ring(id: "gpu", value: gpu?.utilization ?? 0, color: Palette.gpu)], lineWidth: 16) {
                 GaugeCenter(text: Fmt.percent(gpu?.utilization ?? 0), value: gpu?.utilization ?? 0, caption: "GPU")
             }
         } legend: {
-            LegendRow(color: Palette.gpu, label: "功耗", value: monitor.power.map { Fmt.watts($0.gpu) } ?? "—")
-            LegendRow(color: Palette.memory, label: "占用内存", value: Fmt.bytes(gpu?.memoryInUse ?? 0))
+            LegendRow(color: Palette.gpu, label: L("功耗"), value: monitor.power.map { Fmt.watts($0.gpu) } ?? "—")
+            LegendRow(color: Palette.memory, label: L("占用内存"), value: Fmt.bytes(gpu?.memoryInUse ?? 0))
         } facts: {
             InlineStats(items: [
-                .init(label: "核心", value: "\(monitor.chip.gpuCores)", template: "00"),
-                .init(label: "峰值", value: Fmt.percent(monitor.gpuHistory.max), template: Fmt.percentTemplate),
-                .init(label: "频率", value: gpu?.frequency.map { "\(Int($0.rounded())) MHz" } ?? "—", template: "0000 MHz"),
+                .init(label: L("核心"), value: "\(monitor.chip.gpuCores)", template: "00"),
+                .init(label: L("峰值"), value: Fmt.percent(monitor.gpuHistory.max), template: Fmt.percentTemplate),
+                .init(label: L("频率"), value: gpu?.frequency.map { "\(Int($0.rounded())) MHz" } ?? "—", template: "0000 MHz"),
             ])
             .font(.callout)
         } chart: {

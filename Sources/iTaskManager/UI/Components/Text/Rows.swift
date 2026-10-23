@@ -11,7 +11,7 @@ struct LegendRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Circle().fill(color).frame(width: 8, height: 8)
-            Text(label).foregroundStyle(.secondary)
+            Text(label).foregroundStyle(.secondary).lineLimit(1)
             if let info { InfoBadge(text: info) }
             Spacer(minLength: 8)
             Text(value).monospacedDigit()
@@ -28,7 +28,7 @@ struct InfoRow: View {
 
     var body: some View {
         HStack {
-            Text(label).foregroundStyle(.secondary)
+            Text(label).foregroundStyle(.secondary).lineLimit(1)
             if let info { InfoBadge(text: info) }
             Spacer()
             Text(value).monospacedDigit()
