@@ -75,11 +75,15 @@ final class SystemMonitor {
         }
     }
 
-    func endForegroundUse() {
+    /// `keepingData` leaves the last process list and memory attribution in place, for a
+    /// window that is only hidden and will show them again when uncovered.
+    func endForegroundUse(keepingData: Bool = false) {
         foregroundDemand = max(0, foregroundDemand - 1)
         if foregroundDemand == 0 {
-            processes.clear()
-            memoryAttribution = nil
+            if !keepingData {
+                processes.clear()
+                memoryAttribution = nil
+            }
             updatePowerMode()
         }
     }

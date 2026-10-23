@@ -3,3 +3,6 @@ build/
 .swiftpm/
 *.xcodeproj
 .DS_Store
+
+# Local working notes, not published
+docs/

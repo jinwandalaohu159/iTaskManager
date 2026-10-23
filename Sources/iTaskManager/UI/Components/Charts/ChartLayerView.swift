@@ -35,6 +35,11 @@ final class ChartNSView: NSView {
     /// How long the line takes to stretch to a new vertical scale. The axis labels use it too.
     static let rescaleDuration = 0.45
 
+    /// The glide between samples moves a few points per second, so 30 fps looks the same as
+    /// the display's 120 Hz; without this hint the window server recomposites the whole window
+    /// at full rate for as long as a chart is on screen.
+    private static let glideFrameRate = CAFrameRateRange(minimum: 15, maximum: 30, preferred: 30)
+
     struct Series {
         let id: String
         let color: NSColor
@@ -115,6 +120,20 @@ final class ChartNSView: NSView {
         ChartScale(maxValue: scale ?? maxValue, height: bounds.height, inset: lineWidth).y(value)
     }
 
+    /// A change of vertical scale in progress: the ceiling drawn before, and the timing every
+    /// layer's morph shares.
+    private struct Rescale {
+        let scale: Double
+        let animation: CABasicAnimation
+
+        /// A copy of the shared morph for one layer property.
+        func morph(_ keyPath: String) -> CABasicAnimation {
+            let morph = animation.copy() as! CABasicAnimation
+            morph.keyPath = keyPath
+            return morph
+        }
+    }
+
     /// `rescalingFrom` is the previous ceiling when the vertical scale just changed: the line
     /// then morphs from the new data drawn at the old scale, so only heights move while the
     /// horizontal glide carries on.
@@ -125,7 +144,7 @@ final class ChartNSView: NSView {
             let morph = CABasicAnimation(keyPath: "path")
             morph.duration = min(Self.rescaleDuration, interval * 0.9)
             morph.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            return (scale: scale, animation: morph)
+            return Rescale(scale: scale, animation: morph)
         }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -143,71 +162,84 @@ final class ChartNSView: NSView {
         let showsFill = series.count == 1
         for s in series {
             let layers = layersByID[s.id] ?? makeLayers(for: s.id)
-            let color = resolved(s.color)
-            let (line, area) = paths(for: s.values)
-            if let rescale {
-                let (oldLine, oldArea) = paths(for: s.values, scale: rescale.scale)
-                for (layer, from, to) in [(layers.line, oldLine, line), (layers.fill, oldArea, area)] {
-                    let morph = rescale.animation.copy() as! CABasicAnimation
-                    morph.fromValue = from
-                    morph.toValue = to
-                    layer.add(morph, forKey: "rescale")
-                }
-            } else {
-                layers.line.removeAnimation(forKey: "rescale")
-                layers.fill.removeAnimation(forKey: "rescale")
-            }
-
-            layers.line.path = line
-            layers.line.strokeColor = color
-            layers.line.lineWidth = lineWidth
-
-            layers.gradient.isHidden = !showsFill
-            layers.gradient.frame = scrollLayer.bounds
-            layers.fill.frame = scrollLayer.bounds
-            layers.fill.path = area
-            layers.gradient.colors = [resolved(s.color.withAlphaComponent(0.26)), resolved(s.color.withAlphaComponent(0.02))]
-
-            layers.dot.path = CGPath(ellipseIn: CGRect(x: -dotSize / 2, y: -dotSize / 2, width: dotSize, height: dotSize), transform: nil)
-            layers.dot.fillColor = color
-            layers.dot.strokeColor = resolved(.windowBackgroundColor)
-            layers.dot.lineWidth = 2
-            layers.dot.isHidden = s.values.isEmpty
-
-            let newest = s.values.last ?? 0
-            let previous = s.values.count >= 2 ? s.values[s.values.count - 2] : newest
-            layers.dot.position = CGPoint(x: bounds.width - 1, y: y(newest))
-            layers.dot.removeAllAnimations()
-            if animate {
-                let move = CABasicAnimation(keyPath: "position.y")
-                move.fromValue = y(previous)
-                move.toValue = y(newest)
-                move.duration = interval
-                layers.dot.add(move, forKey: "glide")
-            }
-            if let rescale {
-                // Rides on top of the glide, starting where the old scale left the dot.
-                let shift = rescale.animation.copy() as! CABasicAnimation
-                shift.keyPath = "position.y"
-                shift.isAdditive = true
-                shift.fromValue = y(previous, scale: rescale.scale) - y(previous)
-                shift.toValue = 0
-                layers.dot.add(shift, forKey: "rescale")
-            }
+            drawLine(s, in: layers, showsFill: showsFill, rescale: rescale)
+            placeDot(s, in: layers, animate: animate, rescale: rescale)
         }
-
-        // Final resting place: the newest point exactly on the right edge.
-        scrollLayer.position = CGPoint(x: -step, y: 0)
-        if animate {
-            let elapsed = min(max(Date().timeIntervalSince(sampleDate) / interval, 0), 1)
-            let slide = CABasicAnimation(keyPath: "position.x")
-            slide.fromValue = -step * elapsed
-            slide.toValue = -step
-            slide.duration = interval * (1 - elapsed)
-            scrollLayer.add(slide, forKey: "glide")
-        }
+        placeScroll(animate: animate)
 
         CATransaction.commit()
+    }
+
+    private func drawLine(_ s: Series, in layers: SeriesLayers, showsFill: Bool, rescale: Rescale?) {
+        let (line, area) = paths(for: s.values)
+        if let rescale {
+            let (oldLine, oldArea) = paths(for: s.values, scale: rescale.scale)
+            for (layer, from, to) in [(layers.line, oldLine, line), (layers.fill, oldArea, area)] {
+                let morph = rescale.morph("path")
+                morph.fromValue = from
+                morph.toValue = to
+                layer.add(morph, forKey: "rescale")
+            }
+        } else {
+            layers.line.removeAnimation(forKey: "rescale")
+            layers.fill.removeAnimation(forKey: "rescale")
+        }
+
+        layers.line.path = line
+        layers.line.strokeColor = resolved(s.color)
+        layers.line.lineWidth = lineWidth
+
+        layers.gradient.isHidden = !showsFill
+        layers.gradient.frame = scrollLayer.bounds
+        layers.fill.frame = scrollLayer.bounds
+        layers.fill.path = area
+        layers.gradient.colors = [resolved(s.color.withAlphaComponent(0.26)), resolved(s.color.withAlphaComponent(0.02))]
+    }
+
+    /// The dot marks the newest reading on the right edge and glides to it from the previous one.
+    private func placeDot(_ s: Series, in layers: SeriesLayers, animate: Bool, rescale: Rescale?) {
+        let dot = layers.dot
+        dot.path = CGPath(ellipseIn: CGRect(x: -dotSize / 2, y: -dotSize / 2, width: dotSize, height: dotSize), transform: nil)
+        dot.fillColor = resolved(s.color)
+        dot.strokeColor = resolved(.windowBackgroundColor)
+        dot.lineWidth = 2
+        dot.isHidden = s.values.isEmpty
+
+        let newest = s.values.last ?? 0
+        let previous = s.values.count >= 2 ? s.values[s.values.count - 2] : newest
+        dot.position = CGPoint(x: bounds.width - 1, y: y(newest))
+        dot.removeAllAnimations()
+        if animate {
+            let move = CABasicAnimation(keyPath: "position.y")
+            move.fromValue = y(previous)
+            move.toValue = y(newest)
+            move.duration = interval
+            move.preferredFrameRateRange = Self.glideFrameRate
+            dot.add(move, forKey: "glide")
+        }
+        if let rescale {
+            // Rides on top of the glide, starting where the old scale left the dot.
+            let shift = rescale.morph("position.y")
+            shift.isAdditive = true
+            shift.fromValue = y(previous, scale: rescale.scale) - y(previous)
+            shift.toValue = 0
+            dot.add(shift, forKey: "rescale")
+        }
+    }
+
+    /// Slides the lines one step left over the sample interval, picking up where the glide
+    /// had got to if this sample arrived late.
+    private func placeScroll(animate: Bool) {
+        // Final resting place: the newest point exactly on the right edge.
+        scrollLayer.position = CGPoint(x: -step, y: 0)
+        guard animate else { return }
+        let elapsed = min(max(Date().timeIntervalSince(sampleDate) / interval, 0), 1)
+        let slide = CABasicAnimation(keyPath: "position.x")
+        slide.fromValue = -step * elapsed
+        slide.toValue = -step
+        slide.duration = interval * (1 - elapsed)
+        slide.preferredFrameRateRange = Self.glideFrameRate
+        scrollLayer.add(slide, forKey: "glide")
     }
 
     private func makeLayers(for id: String) -> SeriesLayers {

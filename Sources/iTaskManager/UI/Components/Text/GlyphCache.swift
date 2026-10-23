@@ -75,11 +75,14 @@ enum GlyphCache {
         return context.makeImage()!
     }
 
+    /// Creating a Core Image context is costly; one serves every glyph.
+    private static let blurContext = CIContext(options: [.useSoftwareRenderer: false])
+
     private static func blur(_ image: CGImage, radius: CGFloat) -> CGImage? {
         let input = CIImage(cgImage: image)
         guard let filter = CIFilter(name: "CIGaussianBlur", parameters: [kCIInputImageKey: input, kCIInputRadiusKey: radius]),
               let output = filter.outputImage
         else { return nil }
-        return CIContext(options: [.useSoftwareRenderer: false]).createCGImage(output, from: input.extent)
+        return blurContext.createCGImage(output, from: input.extent)
     }
 }

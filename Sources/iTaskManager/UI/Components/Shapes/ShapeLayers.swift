@@ -101,9 +101,20 @@ final class ShapeLayersView: NSView {
             layer.lineCap = state.lineCap
 
             if animated {
-                animate(layer, key: "path", from: layer.presentation()?.path ?? layer.path, to: state.path)
-                animate(layer, key: "strokeStart", from: layer.presentation()?.strokeStart ?? layer.strokeStart, to: state.strokeStart)
-                animate(layer, key: "strokeEnd", from: layer.presentation()?.strokeEnd ?? layer.strokeEnd, to: state.strokeEnd)
+                // Only what visibly moves animates. Readings change a little every second; a
+                // sub-point change looks the same snapped, while animating it keeps the window
+                // compositing at the display's full rate for no visible change.
+                let shown = layer.presentation() ?? layer
+                if let from = shown.path, Self.moves(from, state.path) {
+                    animate(layer, key: "path", from: from, to: state.path)
+                }
+                let strokeStep = Self.visibleStrokeStep(bounds.size)
+                if abs(shown.strokeStart - state.strokeStart) >= strokeStep {
+                    animate(layer, key: "strokeStart", from: shown.strokeStart, to: state.strokeStart)
+                }
+                if abs(shown.strokeEnd - state.strokeEnd) >= strokeStep {
+                    animate(layer, key: "strokeEnd", from: shown.strokeEnd, to: state.strokeEnd)
+                }
             }
             layer.path = state.path
             layer.strokeStart = state.strokeStart
@@ -111,6 +122,21 @@ final class ShapeLayersView: NSView {
         }
 
         CATransaction.commit()
+    }
+
+    /// The smallest change worth animating, in points.
+    private static let visibleChange: CGFloat = 0.5
+
+    /// Meters and segments are rounded rectangles, so their bounds tell whether they moved.
+    private static func moves(_ from: CGPath, _ to: CGPath) -> Bool {
+        let a = from.boundingBoxOfPath, b = to.boundingBoxOfPath
+        return max(abs(a.minX - b.minX), abs(a.minY - b.minY), abs(a.maxX - b.maxX), abs(a.maxY - b.maxY)) >= visibleChange
+    }
+
+    /// The stroke fraction that moves a ring's end by `visibleChange`: a ring drawn in this
+    /// size is at most π × its width around.
+    private static func visibleStrokeStep(_ size: CGSize) -> CGFloat {
+        visibleChange / (.pi * max(size.width, size.height, 1))
     }
 
     private func animate(_ layer: CALayer, key: String, from: Any?, to: Any?) {

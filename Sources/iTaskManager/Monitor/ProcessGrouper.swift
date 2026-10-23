@@ -45,7 +45,7 @@ struct ProcessGrouper {
 
         let visible = options.hideRestricted ? processes.filter { $0.timeRate != nil } : processes
         let byPID = Dictionary(visible.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        let runningApps = icons.refreshRegularApps()
+        let runningApps = icons.runningRegularApps()
 
         var members: [pid_t: [ProcessStats]] = [:]
         for process in visible {

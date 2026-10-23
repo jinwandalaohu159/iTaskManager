@@ -84,16 +84,7 @@ struct LiveChart: View {
     // MARK: Layers
 
     private func gridLines(_ size: CGSize) -> some View {
-        Canvas { context, canvasSize in
-            for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
-                let yPos = y(maxValue * fraction, size).rounded() + 0.5
-                var path = Path()
-                path.move(to: CGPoint(x: 0, y: yPos))
-                path.addLine(to: CGPoint(x: canvasSize.width, y: yPos))
-                context.stroke(path, with: .color(.primary.opacity(fraction == 0 ? 0.14 : 0.07)), lineWidth: 1)
-            }
-        }
-        .frame(width: size.width, height: size.height)
+        ChartGrid(size: size, inset: lineWidth).equatable()
     }
 
     private func baseline(_ size: CGSize) -> some View {

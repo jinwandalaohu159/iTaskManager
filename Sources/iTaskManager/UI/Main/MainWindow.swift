@@ -59,7 +59,6 @@ struct MainWindow: View {
                     NSApp.windows.first { $0.isVisible && $0.canBecomeMain }?.setContentSize(NSSize(width: 860, height: 600))
                 }
             }
-            monitor.beginForegroundUse()
             DockPresence.windowOpened()
             let helper = monitor.helper.state
             promptsForSystemAccess = !settings.askedForSystemAccess && helper != .on && helper != .unavailable
@@ -69,10 +68,9 @@ struct MainWindow: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) { UpdateToolbarButton() }
         }
-        .onDisappear {
-            monitor.endForegroundUse()
-            DockPresence.windowClosed()
-        }
+        .onDisappear { DockPresence.windowClosed() }
+        // Nothing on screen to keep up to date while hidden: sample like the menu bar does.
+        .foregroundUse(pausingWhileHidden: true)
     }
 
     @ViewBuilder
