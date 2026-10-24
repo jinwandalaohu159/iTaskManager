@@ -36,13 +36,12 @@ final class Updater {
 
     @ObservationIgnored private var context = Context()
 
-    /// Checks shortly after launch and then every few hours. A new version found while
-    /// `context` says to install automatically is installed right away (see `installFound`).
+    /// Checks at launch and then every few hours. A new version found while `context` says
+    /// to install automatically is installed right away (see `installFound`).
     func startAutomaticChecks(_ context: Context) {
         self.context = context
         schedule?.cancel()
         schedule = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(10))
             while !Task.isCancelled {
                 await self?.check()
                 try? await Task.sleep(for: Self.checkInterval)
@@ -50,10 +49,14 @@ final class Updater {
         }
     }
 
-    /// When the main window opens: a copy that has sat in the menu bar since login may not
-    /// have looked for a while.
-    func checkIfStale() async {
-        guard let lastChecked, Date.now.timeIntervalSince(lastChecked) > 3600 else { return }
+    /// When the main window opens: shows an automatic update already under way, or looks
+    /// for one unless that was just done (as at launch).
+    func windowOpened() async {
+        if isBusy {
+            if case .checking = phase {} else { presentsSheet = true }
+            return
+        }
+        if let lastChecked, Date.now.timeIntervalSince(lastChecked) < 60 { return }
         await check()
     }
 
@@ -84,15 +87,13 @@ final class Updater {
     /// With a window open the update sheet shows the progress; with none, it all happens
     /// quietly and the new version starts without a window, as this one was.
     private func installFound() {
-        if context.windowOpen() {
-            presentsSheet = true
-            install()
-        } else {
-            install(quietly: true)
-        }
+        if context.windowOpen() { presentsSheet = true }
+        install(automatically: true)
     }
 
-    func install(quietly: Bool = false) {
+    /// An automatic install relaunches quietly if no window is open when the new version is
+    /// ready (decided then, as one may open while it downloads, e.g. right after launch).
+    func install(automatically: Bool = false) {
         guard let release = available, !isBusy else { return }
         phase = .downloading(0)
         let report: @Sendable (Double) -> Void = { [weak self] fraction in
@@ -105,7 +106,7 @@ final class Updater {
                 self.phase = .installing
                 // Let the "installing" state render before the app quits.
                 try await Task.sleep(for: .milliseconds(400))
-                try UpdateInstaller.swapAndRelaunch(with: app, inBackground: quietly)
+                try UpdateInstaller.swapAndRelaunch(with: app, inBackground: automatically && !self.context.windowOpen())
             } catch is CancellationError {
                 self?.phase = .idle
             } catch {
