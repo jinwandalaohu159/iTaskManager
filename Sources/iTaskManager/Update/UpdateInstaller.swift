@@ -50,7 +50,8 @@ enum UpdateInstaller {
     /// Quits, swaps the bundles and opens the new one. A small shell script does the swap
     /// once this process has exited, since a running app can't replace itself.
     @MainActor
-    static func swapAndRelaunch(with app: URL) throws {
+    /// `inBackground`: start the new version without its window or taking focus.
+    static func swapAndRelaunch(with app: URL, inBackground: Bool = false) throws {
         let current = Bundle.main.bundleURL
         let backup = app.deletingLastPathComponent().appending(path: "previous.app")
         let script = """
@@ -61,11 +62,12 @@ enum UpdateInstaller {
             [ -e "$2" ] || mv "$4" "$2"
         fi
         xattr -dr com.apple.quarantine "$2" 2>/dev/null
-        open "$2"
+        if [ "$5" = background ]; then open -g "$2" --args \(LaunchOptions.background); else open "$2"; fi
         """
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = ["-c", script, "swap", String(getpid()), current.path, app.path, backup.path]
+        process.arguments = ["-c", script, "swap", String(getpid()), current.path, app.path, backup.path,
+                             inBackground ? "background" : "foreground"]
         do { try process.run() } catch { throw Failure.swapFailed }
         NSApplication.shared.terminate(nil)
         // terminate(_:) only returns when quitting was put off, as it is while a sheet (the

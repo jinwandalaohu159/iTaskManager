@@ -26,16 +26,35 @@ final class Updater {
 
     static let checkInterval: Duration = .seconds(6 * 3600)
 
-    /// Checks shortly after launch and then every few hours, while `enabled` says so.
-    func startAutomaticChecks(enabled: @escaping @MainActor () -> Bool) {
+    /// What the app tells the updater about itself, asked each time a new version turns up.
+    struct Context {
+        /// Install new versions on their own (the "update automatically" setting).
+        var installsAutomatically: @MainActor () -> Bool = { false }
+        /// The main window is open, so progress can be shown there.
+        var windowOpen: @MainActor () -> Bool = { false }
+    }
+
+    @ObservationIgnored private var context = Context()
+
+    /// Checks shortly after launch and then every few hours. A new version found while
+    /// `context` says to install automatically is installed right away (see `installFound`).
+    func startAutomaticChecks(_ context: Context) {
+        self.context = context
         schedule?.cancel()
         schedule = Task { [weak self] in
             try? await Task.sleep(for: .seconds(10))
             while !Task.isCancelled {
-                if enabled() { await self?.check() }
+                await self?.check()
                 try? await Task.sleep(for: Self.checkInterval)
             }
         }
+    }
+
+    /// When the main window opens: a copy that has sat in the menu bar since login may not
+    /// have looked for a while.
+    func checkIfStale() async {
+        guard let lastChecked, Date.now.timeIntervalSince(lastChecked) > 3600 else { return }
+        await check()
     }
 
     var isBusy: Bool {
@@ -52,7 +71,7 @@ final class Updater {
             let latest = try await GitHubReleases.latest()
             available = latest.version > AppVersion.current ? latest : nil
             phase = .idle
-            if available != nil, DevHooks.installUpdateWhenFound { presentsSheet = true }
+            if available != nil, context.installsAutomatically() || DevHooks.installUpdateWhenFound { installFound() }
         } catch GitHubReleases.Failure.noRelease {
             available = nil
             phase = .idle
@@ -62,7 +81,18 @@ final class Updater {
         lastChecked = .now
     }
 
-    func install() {
+    /// With a window open the update sheet shows the progress; with none, it all happens
+    /// quietly and the new version starts without a window, as this one was.
+    private func installFound() {
+        if context.windowOpen() {
+            presentsSheet = true
+            install()
+        } else {
+            install(quietly: true)
+        }
+    }
+
+    func install(quietly: Bool = false) {
         guard let release = available, !isBusy else { return }
         phase = .downloading(0)
         let report: @Sendable (Double) -> Void = { [weak self] fraction in
@@ -75,7 +105,7 @@ final class Updater {
                 self.phase = .installing
                 // Let the "installing" state render before the app quits.
                 try await Task.sleep(for: .milliseconds(400))
-                try UpdateInstaller.swapAndRelaunch(with: app)
+                try UpdateInstaller.swapAndRelaunch(with: app, inBackground: quietly)
             } catch is CancellationError {
                 self?.phase = .idle
             } catch {

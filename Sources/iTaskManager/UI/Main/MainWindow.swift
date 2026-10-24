@@ -63,6 +63,7 @@ struct MainWindow: View {
             let helper = monitor.helper.state
             promptsForSystemAccess = !settings.askedForSystemAccess && helper != .on && helper != .unavailable
         }
+        .task { await updater.checkIfStale() }
         .sheet(isPresented: $promptsForSystemAccess) { SystemAccessPrompt() }
         .sheet(isPresented: Bindable(updater).presentsSheet) { UpdateSheet() }
         .toolbar {

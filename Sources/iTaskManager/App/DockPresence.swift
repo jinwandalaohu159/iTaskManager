@@ -12,4 +12,7 @@ enum DockPresence {
     static func windowClosed() {
         NSApp.setActivationPolicy(.accessory)
     }
+
+    /// The main window is open: the app is in the Dock exactly then.
+    static var isWindowOpen: Bool { NSApp.activationPolicy() == .regular }
 }

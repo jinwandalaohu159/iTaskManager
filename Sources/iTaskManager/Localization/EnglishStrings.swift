@@ -185,7 +185,9 @@ enum EnglishStrings {
         "未授权读取系统进程时，部分系统进程的占用读不到，打开后不在列表中显示它们。授权后所有进程都能读取，此项不再有影响。":
             "Without access to system processes, some of their usage can't be read; this leaves them out of the list. Once access is allowed every process can be read and this has no effect.",
         "关于": "About",
-        "自动检查更新": "Check for Updates Automatically",
+        "自动更新": "Update Automatically",
+        "发现新版本后自动下载安装。窗口没有打开时在后台静默完成并重启；窗口打开时显示进度，完成后重启。":
+            "New versions download and install on their own. With no window open it happens quietly in the background; with a window open you see the progress, then the app restarts.",
         "芯片": "Chip",
         "%@ 性能核 + %@ 能效核 · %@ 核 GPU": "%@ P-cores + %@ E-cores · %@-core GPU",
         "设置失败：%@。请先把应用移到“应用程序”文件夹。": "Couldn't change this: %@. Move the app to the Applications folder first.",

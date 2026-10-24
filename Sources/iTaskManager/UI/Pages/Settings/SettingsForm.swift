@@ -93,7 +93,10 @@ struct SettingsForm: View {
 
             Section(L("关于")) {
                 UpdateRow()
-                Toggle(L("自动检查更新"), isOn: $settings.autoCheckUpdates)
+                Toggle(isOn: $settings.autoUpdate) {
+                    Text(L("自动更新"))
+                        .info(L("发现新版本后自动下载安装。窗口没有打开时在后台静默完成并重启；窗口打开时显示进度，完成后重启。"))
+                }
                 LabeledContent(L("芯片"), value: monitor.chip.name)
                 LabeledContent(L("核心"), value: L("\(monitor.chip.performanceCount) 性能核 + \(monitor.chip.efficiencyCount) 能效核 · \(monitor.chip.gpuCores) 核 GPU"))
                 LabeledContent(L("系统"), value: "macOS \(monitor.chip.osVersion)")

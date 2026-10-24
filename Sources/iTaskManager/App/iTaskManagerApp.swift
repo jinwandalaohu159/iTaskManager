@@ -9,7 +9,10 @@ struct iTaskManagerApp: App {
     init() {
         let settings = AppSettings()
         let updater = Updater()
-        updater.startAutomaticChecks { settings.autoCheckUpdates }
+        updater.startAutomaticChecks(Updater.Context(
+            installsAutomatically: { settings.autoUpdate },
+            windowOpen: { DockPresence.isWindowOpen }
+        ))
         _settings = State(initialValue: settings)
         _monitor = State(initialValue: SystemMonitor(settings: settings))
         _updater = State(initialValue: updater)
@@ -21,7 +24,7 @@ struct iTaskManagerApp: App {
                 .appEnvironment(settings: settings, monitor: monitor, updater: updater)
         }
         .defaultSize(width: 1120, height: 780)
-        .defaultLaunchBehavior(settings.openWindowAtLaunch ? .presented : .suppressed)
+        .defaultLaunchBehavior(settings.openWindowAtLaunch && !LaunchOptions.startedInBackground ? .presented : .suppressed)
 
         MenuBarExtra {
             MenuBarPanel()

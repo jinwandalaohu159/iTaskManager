@@ -46,6 +46,9 @@ private struct InfoTipAnchor: NSViewRepresentable {
     final class AnchorView: NSView {
         var text = ""
         var onHover: (Bool) -> Void = { _ in }
+        /// Watches scrolls and clicks while the bubble is up: a scroll moves the badge out from
+        /// under a still pointer without any "exited" event, which used to leave it stuck.
+        private var monitor: Any?
 
         override func updateTrackingAreas() {
             super.updateTrackingAreas()
@@ -62,16 +65,42 @@ private struct InfoTipAnchor: NSViewRepresentable {
             onHover(true)
             let rect = window.convertToScreen(convert(bounds, to: nil))
             InfoTip.shared.show(text, below: rect, on: window.screen, owner: self)
+            watchUntilLeft()
         }
 
         override func mouseExited(with event: NSEvent) {
-            onHover(false)
-            InfoTip.shared.hide(owner: self)
+            dismiss()
         }
 
         override func viewWillMove(toWindow newWindow: NSWindow?) {
             super.viewWillMove(toWindow: newWindow)
-            if newWindow == nil { InfoTip.shared.hide(owner: self) }
+            if newWindow == nil { dismiss() }
+        }
+
+        private func dismiss() {
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            monitor = nil
+            onHover(false)
+            InfoTip.shared.hide(owner: self)
+        }
+
+        private func watchUntilLeft() {
+            guard monitor == nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel, .leftMouseDown, .rightMouseDown]) { [weak self] event in
+                if event.type == .scrollWheel {
+                    // The content moves after this event is handled; look once it has.
+                    DispatchQueue.main.async { self?.dismissIfPointerLeft() }
+                } else {
+                    self?.dismiss()
+                }
+                return event
+            }
+        }
+
+        private func dismissIfPointerLeft() {
+            guard let window else { return dismiss() }
+            let pointer = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+            if !bounds.contains(pointer) { dismiss() }
         }
     }
 }

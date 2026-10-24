@@ -78,7 +78,9 @@ final class AppSettings {
     var groupProcessesByApp: Bool { didSet { store(groupProcessesByApp, Key.groupProcessesByApp) } }
     var hideRestrictedProcesses: Bool { didSet { store(hideRestrictedProcesses, Key.hideRestrictedProcesses) } }
     var processCPUScale: CPUScale { didSet { store(processCPUScale.rawValue, Key.processCPUScale) } }
-    var autoCheckUpdates: Bool { didSet { store(autoCheckUpdates, Key.autoCheckUpdates) } }
+    /// Install new versions on their own: quietly while no window is open, with progress shown
+    /// while one is. Off, new versions are still found and offered.
+    var autoUpdate: Bool { didSet { store(autoUpdate, Key.autoUpdate) } }
     /// The first-launch prompt about reading system processes has been answered.
     var askedForSystemAccess: Bool { didSet { store(askedForSystemAccess, Key.askedForSystemAccess) } }
 
@@ -113,7 +115,8 @@ final class AppSettings {
         hideRestrictedProcesses = bool(Key.hideRestrictedProcesses, false)
         processCPUScale = defaults.string(forKey: Key.processCPUScale).flatMap(CPUScale.init(rawValue:)) ?? .machine
         askedForSystemAccess = bool(Key.askedForSystemAccess, false)
-        autoCheckUpdates = bool(Key.autoCheckUpdates, true)
+        // Carries over the earlier "check for updates automatically" choice.
+        autoUpdate = bool(Key.autoUpdate, bool("autoCheckUpdates", true))
 
         applyAppearance()
     }
@@ -149,6 +152,6 @@ final class AppSettings {
         static let hideRestrictedProcesses = "hideRestrictedProcesses"
         static let processCPUScale = "processCPUScale"
         static let askedForSystemAccess = "askedForSystemAccess"
-        static let autoCheckUpdates = "autoCheckUpdates"
+        static let autoUpdate = "autoUpdate"
     }
 }
