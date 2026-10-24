@@ -34,16 +34,11 @@ bool itm_gpu_read(ITMGPUReader *r, ITMGPUActivity *out) {
         CFDictionaryRef item = CFArrayGetValueAtIndex(items, i);
         CFStringRef name = IOReportChannelGetChannelName(item);
         if (!name || CFStringCompare(name, CFSTR("GPUPH"), 0) != kCFCompareEqualTo) continue;
-        for (int32_t s = 0; s < IOReportStateGetCount(item); s++) {
-            double residency = (double)IOReportStateGetResidency(item, s);
-            total += residency;
-            // GPU states count up from the lowest clock: P1, P2, …; OFF/IDLE are idle time.
-            int level = itm_state_level(IOReportStateGetNameForIndex(item, s));
-            if (level < 1) continue;
-            int index = level <= r->frequencyCount ? level - 1 : r->frequencyCount - 1;
-            active += residency;
-            cycles += residency * r->frequencies[index];
-        }
+        // GPU states count up from the lowest clock: P1, P2, …; OFF/IDLE are idle time.
+        ITMClockResidency c = itm_clock_residency(item, r->frequencies, r->frequencyCount, ITMLevelsFromBottom);
+        total += c.total;
+        active += c.active;
+        cycles += c.cycles;
     }
     CFRelease(delta);
     if (total <= 0) return false;

@@ -13,11 +13,26 @@ struct MenuBarLabel: View {
 
     private var items: [MenuBarText.Item] {
         var items: [MenuBarText.Item] = []
-        if settings.menuBarCPU { items.append(.init(label: "CPU", value: percent(monitor.cpu?.total))) }
+        // Temperatures are only read for items that are on, so others don't redraw the item.
+        appendReading("CPU", usage: settings.menuBarCPU ? monitor.cpu?.total ?? 0 : nil,
+                      temperature: settings.menuBarCPUTemperature ? monitor.temperatures.cpu : nil, to: &items)
         if settings.menuBarMemory { items.append(.init(label: L("内存", context: "menubar"), value: percent(monitor.memory?.usedFraction))) }
-        if settings.menuBarGPU { items.append(.init(label: "GPU", value: percent(monitor.gpu?.utilization))) }
+        appendReading("GPU", usage: settings.menuBarGPU ? monitor.gpu?.utilization ?? 0 : nil,
+                      temperature: settings.menuBarGPUTemperature ? monitor.temperatures.gpu : nil, to: &items)
         if settings.menuBarPower, let watts = monitor.systemWatts { items.append(.init(label: nil, value: Self.watts(watts))) }
         return items
+    }
+
+    /// "CPU 12%", "CPU 48°" or both under one label, "CPU 12% 48°".
+    private func appendReading(_ label: String, usage: Double?, temperature: SensorGroup?, to items: inout [MenuBarText.Item]) {
+        let values = [usage.map { percent($0) }, temperature.map { Self.degrees($0.average) }].compactMap { $0 }
+        guard !values.isEmpty else { return }
+        items.append(.init(label: label, value: values.joined(separator: " ")))
+    }
+
+    /// Whole degrees, two digits wide like the percentages.
+    static func degrees(_ celsius: Double) -> String {
+        Fmt.padded("\(Int(celsius.rounded()))°", to: 3)
     }
 
     /// Two digits wide; only a full 100% takes a third.
@@ -31,55 +46,5 @@ struct MenuBarLabel: View {
         watts < 9.95
             ? String(format: "%.1fW", watts)
             : "\u{2008}" + String(format: "%.0fW", min(watts, 99))
-    }
-}
-
-/// Draws the status item. The menu bar ignores SwiftUI's monospaced-digit setting, and
-/// proportional digits make the item — and everything to its left — jitter as values
-/// change. With tabular digits and fixed padding the width stays put.
-@MainActor
-enum MenuBarText {
-    struct Item: Equatable {
-        let label: String?
-        let value: String
-
-        var text: String { label.map { "\($0) \(value)" } ?? value }
-    }
-
-    private static let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
-    private static let appIcon = NSImage(systemSymbolName: "gauge.with.dots.needle.33percent", accessibilityDescription: "iTaskManager")?
-        .withSymbolConfiguration(.init(pointSize: NSFont.systemFontSize, weight: .regular))
-    private static let itemGap: CGFloat = 8
-    private static let appIconGap: CGFloat = 6
-    private static var cache: (items: [Item], image: NSImage)?
-
-    static func image(_ items: [Item]) -> NSImage {
-        if let cache, cache.items == items { return cache.image }
-        let image = items.isEmpty ? (appIcon ?? NSImage()) : render(items)
-        image.isTemplate = true   // takes the menu bar's own colour in every appearance
-        cache = (items, image)
-        return image
-    }
-
-    private static func render(_ items: [Item]) -> NSImage {
-        let texts = items.map { NSAttributedString(string: $0.text, attributes: [.font: font, .foregroundColor: NSColor.black]) }
-        let textHeight = ceil(font.ascender - font.descender)
-        let appIconSize = appIcon?.size ?? .zero
-        let height = max(textHeight, ceil(appIconSize.height))
-        let width = ceil(appIconSize.width) + appIconGap
-            + texts.reduce(CGFloat(0)) { $0 + ceil($1.size().width) }
-            + itemGap * CGFloat(texts.count - 1)
-
-        return NSImage(size: NSSize(width: ceil(width), height: height), flipped: false) { _ in
-            // The app's gauge leads, then each reading.
-            appIcon?.draw(in: NSRect(x: 0, y: (height - appIconSize.height) / 2,
-                                     width: appIconSize.width, height: appIconSize.height))
-            var x = ceil(appIconSize.width) + appIconGap
-            for text in texts {
-                text.draw(at: NSPoint(x: x, y: (height - textHeight) / 2))
-                x += ceil(text.size().width) + itemGap
-            }
-            return true
-        }
     }
 }

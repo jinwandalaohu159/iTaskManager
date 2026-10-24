@@ -14,7 +14,9 @@ struct PowerBreakdown: View {
             parts.append(("cpu", "CPU", Palette.cpu, power.cpu))
         }
         parts.append(("gpu", "GPU", Palette.gpu, power.gpu))
-        parts.append(("dram", L("内存"), Palette.memory, power.dram))
+        if let dram = power.dram {
+            parts.append(("dram", L("内存"), Palette.memory, dram))
+        }
         if power.ane > 0.005 {
             parts.append(("ane", L("神经网络引擎"), Palette.power, power.ane))
         }

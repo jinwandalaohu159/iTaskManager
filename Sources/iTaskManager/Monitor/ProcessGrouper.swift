@@ -13,13 +13,20 @@ struct ProcessGrouper {
     /// What a process's 100% CPU is.
     enum CPUBasis {
         /// Cycles per second, e.g. every core at its top clock. The default where clocks are known.
-        case cycles(fullScale: Double)
+        /// `scale` puts cycles counted at the clock a cluster actually ran on the CPU total's
+        /// footing (see `CPUStats.clockScale`), so a machine flat out reads 100%.
+        case cycles(fullScale: Double, scale: [CoreKind: Double] = [:])
         /// Busy cores, e.g. 1 for one core or the core count for the whole machine.
         case time(fullScale: Double)
 
         func percent(of process: ProcessStats) -> Double? {
             switch self {
-            case .cycles(let full): process.cycleRate.map { $0 / full * 100 }
+            case .cycles(let full, let scale):
+                process.cycleRate.map { cycles in
+                    let performance = min(process.pCycleRate ?? 0, cycles)
+                    let scaled = performance * (scale[.performance] ?? 1) + (cycles - performance) * (scale[.efficiency] ?? 1)
+                    return scaled / full * 100
+                }
             case .time(let full): process.timeRate.map { $0 / full * 100 }
             }
         }
@@ -106,12 +113,12 @@ struct ProcessGrouper {
 
 extension ProcessGrouper.Options {
     @MainActor
-    init(settings: AppSettings, chip: ChipInfo) {
+    init(settings: AppSettings, chip: ChipInfo, clockScale: [CoreKind: Double] = [:]) {
         let machine = settings.processCPUScale == .machine
         let basis: ProcessGrouper.CPUBasis
         // Whole machine: every core at its top clock. One core: a performance core at its top clock.
         if let capacity = chip.cycleCapacity, let top = chip.maxFrequency?[.performance] {
-            basis = .cycles(fullScale: machine ? capacity : top * 1e6)
+            basis = .cycles(fullScale: machine ? capacity : top * 1e6, scale: clockScale)
         } else {
             basis = .time(fullScale: machine ? Double(max(chip.coreKinds.count, 1)) : 1)
         }

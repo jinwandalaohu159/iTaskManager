@@ -66,6 +66,8 @@ struct SettingsForm: View {
                 Toggle(L("CPU 占用"), isOn: $settings.menuBarCPU)
                 Toggle(L("内存占用"), isOn: $settings.menuBarMemory)
                 Toggle(L("GPU 占用"), isOn: $settings.menuBarGPU)
+                Toggle(L("CPU 温度"), isOn: $settings.menuBarCPUTemperature)
+                Toggle(L("GPU 温度"), isOn: $settings.menuBarGPUTemperature)
                 Toggle(L("整机功耗"), isOn: $settings.menuBarPower)
             }
 

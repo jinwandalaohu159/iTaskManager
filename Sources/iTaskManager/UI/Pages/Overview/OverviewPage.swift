@@ -51,14 +51,20 @@ private struct MemorySummaryCard: View {
         Card {
             VStack(alignment: .leading, spacing: 14) {
                 SectionHeader(title: L("内存")) {
-                    if let memory { PressureBadge(pressure: memory.pressure) }
+                    // The capsule's padding stays out of the layout, so this header is as tall as
+                    // the energy card's and the rows below line up across the two cards.
+                    if let memory { PressureBadge(pressure: memory.pressure).padding(.vertical, -4) }
                 }
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    LiveNumber(text: Fmt.bytes(memory?.used ?? 0), value: Double(memory?.used ?? 0), template: Fmt.bytesTemplate)
-                    Text("/ \(Fmt.bytes(monitor.chip.memoryBytes))").foregroundStyle(.secondary)
+                // Laid out like the energy card beside it, so the two cards' rows line up.
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        LiveNumber(text: Fmt.bytes(memory?.used ?? 0), value: Double(memory?.used ?? 0), template: Fmt.bytesTemplate)
+                        Text("/ \(Fmt.bytes(monitor.chip.memoryBytes))").foregroundStyle(.secondary)
+                    }
+                    Text(L("统一内存")).font(.callout).foregroundStyle(.secondary)
                 }
                 if let memory {
-                    MemoryComposition(memory: memory, attribution: monitor.memoryAttribution)
+                    MemoryComposition(memory: memory, gpuMemory: monitor.gpu?.memoryInUse)
                 }
             }
         }

@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 
-/// The helper's launchd label and Mach service name.
-#define ITM_HELPER_SERVICE "com.rhysmao.iTaskManager.helper"
+// The helper's launchd label, which is also its Mach service name, is chosen per build from
+// the helper's own code hash (see scripts/build-app.sh): the app finds it under ITMHelperLabel
+// in its Info.plist, the helper in XPC_SERVICE_NAME.
+
 /// Only this code-signing identity may talk to the helper.
 #define ITM_HELPER_CLIENT_REQUIREMENT "identifier \"com.rhysmao.iTaskManager\""
 /// Bumped whenever `ITMProcessCounters` changes, so a stale helper is never misread.

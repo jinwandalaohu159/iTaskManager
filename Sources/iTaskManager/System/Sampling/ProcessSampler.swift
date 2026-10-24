@@ -6,8 +6,6 @@ final class ProcessSampler {
     private var previous: [pid_t: ProcessCounters] = [:]
     private var previousTime: UInt64 = 0
     private var paths: [pid_t: String] = [:]
-    /// Whether the last `sample(privileged:)` got its counters from the helper.
-    private(set) var lastSampleWasPrivileged = false
     private var owners: [pid_t: uid_t] = [:]
     private let helper = HelperCounterReader()
     private var ledger = EnergyLedger()
@@ -35,8 +33,7 @@ final class ProcessSampler {
 
         let pids = Self.allPIDs()
         guard !pids.isEmpty else { return [] }
-        let (counters, fromHelper) = readCounters(pids, privileged: privileged)
-        lastSampleWasPrivileged = fromHelper
+        let counters = readCounters(pids, privileged: privileged)
         var livePaths: [pid_t: String] = [:]
         var liveOwners: [pid_t: uid_t] = [:]
 
@@ -78,21 +75,21 @@ final class ProcessSampler {
     func checkpointEnergyIfDue(privileged: Bool) {
         guard ledger.isCheckpointDue else { return }
         let pids = Self.allPIDs()
-        let (counters, _) = readCounters(pids, privileged: privileged)
+        let counters = readCounters(pids, privileged: privileged)
         let responsible = Dictionary(uniqueKeysWithValues: counters.keys.map { ($0, responsibility_get_pid_responsible_for_pid($0)) })
         ledger.record(counters, responsible: responsible, alive: Set(pids))
     }
 
     /// Every readable process's counters: from the helper when `privileged` and it answers,
-    /// otherwise whichever this user may read. Also says whether the helper supplied them.
-    private func readCounters(_ pids: [pid_t], privileged: Bool) -> ([pid_t: ProcessCounters], fromHelper: Bool) {
+    /// otherwise whichever this user may read.
+    private func readCounters(_ pids: [pid_t], privileged: Bool) -> [pid_t: ProcessCounters] {
         let fromHelper = privileged ? helper.read() : nil
         var counters: [pid_t: ProcessCounters] = [:]
         counters.reserveCapacity(pids.count)
         for pid in pids {
             if let c = fromHelper?[pid] ?? ProcessCounters.read(pid) { counters[pid] = c }
         }
-        return (counters, fromHelper != nil)
+        return counters
     }
 
     /// Rates since the previous sample. A process seen for the first time (or a reused pid)

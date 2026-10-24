@@ -47,11 +47,12 @@ final class CPUSampler {
             allSum += all
         }
         var total = allSum > 0 ? (userSum + systemSum) / allSum : 0
-        var frequency: [CoreKind: Double] = [:]
+        var frequency: [CoreKind: Double] = [:], clockScale: [CoreKind: Double] = [:]
         if let clocked = clockWeighted() {
             perCore = clocked.perCore
             total = clocked.total
             frequency = clocked.frequency
+            clockScale = clocked.clockScale
         }
         // Busy time tells user from kernel; apply that split to the clock-weighted total.
         let busy = userSum + systemSum
@@ -60,14 +61,15 @@ final class CPUSampler {
             total: total,
             user: busy > 0 ? total * userSum / busy : 0,
             system: busy > 0 ? total * systemSum / busy : 0,
-            frequency: frequency
+            frequency: frequency,
+            clockScale: clockScale
         )
     }
 
-    /// Each core's busy time weighted by its clock against its top clock, the machine total
-    /// weighted by each core's top clock, and each kind's average running clock. nil when the
+    /// Each core's load against flat out, the machine total weighted by each core's top clock,
+    /// each kind's actual running clock and its requested-to-actual ratio. nil when the
     /// readings don't cover every core.
-    private func clockWeighted() -> (perCore: [Double], total: Double, frequency: [CoreKind: Double])? {
+    private func clockWeighted() -> (perCore: [Double], total: Double, frequency: [CoreKind: Double], clockScale: [CoreKind: Double])? {
         guard let residency else { return nil }
         let count = Int(itm_cpu_read(residency, &activity, Int32(activity.count)))
         let efficiency = chip.indices(of: .efficiency), performance = chip.indices(of: .performance)
@@ -75,7 +77,7 @@ final class CPUSampler {
 
         var perCore = [Double](repeating: 0, count: count)
         var used = 0.0, available = 0.0
-        var busy: [CoreKind: Double] = [:], cycles: [CoreKind: Double] = [:]
+        var busy: [CoreKind: Double] = [:], cycles: [CoreKind: Double] = [:], requested: [CoreKind: Double] = [:]
         for core in activity.prefix(count) {
             let cluster = core.performance ? performance : efficiency
             guard let index = cluster[safe: Int(core.index)] else { return nil }
@@ -85,11 +87,15 @@ final class CPUSampler {
             let kind: CoreKind = core.performance ? .performance : .efficiency
             busy[kind, default: 0] += core.busy
             cycles[kind, default: 0] += core.busy * core.averageFrequency
+            requested[kind, default: 0] += core.busy * core.requestedFrequency
         }
-        let frequency = busy.reduce(into: [CoreKind: Double]()) { result, entry in
-            if entry.value > 0.001 { result[entry.key] = (cycles[entry.key] ?? 0) / entry.value }
+        var frequency: [CoreKind: Double] = [:], clockScale: [CoreKind: Double] = [:]
+        for (kind, time) in busy where time > 0.001 {
+            let actual = cycles[kind] ?? 0
+            frequency[kind] = actual / time
+            if actual > 0 { clockScale[kind] = (requested[kind] ?? 0) / actual }
         }
-        return (perCore, available > 0 ? used / available : 0, frequency)
+        return (perCore, available > 0 ? used / available : 0, frequency, clockScale)
     }
 
     private func readTicks() -> [Ticks] {

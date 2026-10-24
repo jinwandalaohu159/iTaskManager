@@ -70,6 +70,8 @@ final class AppSettings {
     var menuBarCPU: Bool { didSet { store(menuBarCPU, Key.menuBarCPU) } }
     var menuBarMemory: Bool { didSet { store(menuBarMemory, Key.menuBarMemory) } }
     var menuBarGPU: Bool { didSet { store(menuBarGPU, Key.menuBarGPU) } }
+    var menuBarCPUTemperature: Bool { didSet { store(menuBarCPUTemperature, Key.menuBarCPUTemperature) } }
+    var menuBarGPUTemperature: Bool { didSet { store(menuBarGPUTemperature, Key.menuBarGPUTemperature) } }
     var menuBarPower: Bool { didSet { store(menuBarPower, Key.menuBarPower) } }
 
     // Processes
@@ -103,6 +105,8 @@ final class AppSettings {
         menuBarCPU = bool(Key.menuBarCPU, true)
         menuBarMemory = bool(Key.menuBarMemory, false)
         menuBarGPU = bool(Key.menuBarGPU, false)
+        menuBarCPUTemperature = bool(Key.menuBarCPUTemperature, false)
+        menuBarGPUTemperature = bool(Key.menuBarGPUTemperature, false)
         menuBarPower = bool(Key.menuBarPower, true)
 
         groupProcessesByApp = bool(Key.groupProcessesByApp, true)
@@ -138,6 +142,8 @@ final class AppSettings {
         static let menuBarCPU = "menuBarCPU"
         static let menuBarMemory = "menuBarMemory"
         static let menuBarGPU = "menuBarGPU"
+        static let menuBarCPUTemperature = "menuBarCPUTemperature"
+        static let menuBarGPUTemperature = "menuBarGPUTemperature"
         static let menuBarPower = "menuBarPower"
         static let groupProcessesByApp = "groupProcessesByApp"
         static let hideRestrictedProcesses = "hideRestrictedProcesses"

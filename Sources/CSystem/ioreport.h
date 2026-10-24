@@ -25,6 +25,11 @@ typedef struct {
 
 /// Subscribes to a group (and optionally one subgroup) and takes the first sample.
 bool itm_stream_open(ITMReportStream *stream, CFStringRef group, CFStringRef subgroup);
+/// Like itm_stream_open, keeping only the channels with these names.
+bool itm_stream_open_named(ITMReportStream *stream, CFStringRef group, CFStringRef subgroup,
+                           const CFStringRef *names, int count);
+/// Subscribes to channels described by hand: a dictionary with an "IOReportChannels" array.
+bool itm_stream_open_channels(ITMReportStream *stream, CFMutableDictionaryRef channels);
 /// The delta since the previous call, or NULL. The caller releases it.
 CFDictionaryRef itm_stream_delta(ITMReportStream *stream);
 void itm_stream_close(ITMReportStream *stream);
@@ -34,5 +39,18 @@ void itm_stream_close(ITMReportStream *stream);
 /// Returns the number of frequencies written to `out`.
 int itm_dvfs_table(const char *key, double divisor, double *out, int capacity);
 
-/// Performance level parsed from a state name: "P3" or "V4P3" -> 3. -1 for idle/off states.
-int itm_state_level(CFStringRef name);
+/// How a performance-state channel's levels map onto a DVFS table (lowest clock first).
+typedef enum {
+    /// CPU: level 0 is the top clock ("V7P0"), counting down.
+    ITMLevelsFromTop,
+    /// GPU: level 1 is the bottom clock ("P1"), counting up; level 0 isn't a clock.
+    ITMLevelsFromBottom,
+} ITMLevelOrder;
+
+/// Residency of one performance-state channel: all of it, the part at some clock, and that part
+/// weighted by its clock in MHz (so `cycles / active` is the average running clock).
+typedef struct {
+    double total, active, cycles;
+} ITMClockResidency;
+
+ITMClockResidency itm_clock_residency(CFDictionaryRef channel, const double *mhz, int count, ITMLevelOrder order);

@@ -20,6 +20,12 @@ struct LiveBattery {
         if !battery.isPluggedIn, let live = power?.battery, live > 0 {
             battery.watts = -live
         }
+        // Plugged in, the gauge lags by about a minute; what the adapter supplies beyond the
+        // Mac's own use is live.
+        if battery.isPluggedIn, let input = power?.adapterInput {
+            battery.watts = ChargeFlow(input: input, system: min(systemWatts ?? 0, input)).battery
+            if battery.watts > 1, !battery.isFullyCharged { battery.isCharging = true }
+        }
 
         if battery.isPluggedIn, wasPluggedIn == false { pluggedInAt = date }
         if !battery.isPluggedIn { pluggedInAt = nil }

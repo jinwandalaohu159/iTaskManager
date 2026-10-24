@@ -45,23 +45,3 @@ struct ProcessCounters {
         return ok ? ProcessCounters(usage) : nil
     }
 }
-
-/// Every process's counters, system ones included, through the root helper.
-final class HelperCounterReader {
-    private var buffer: [ITMProcessCounters] = []
-
-    /// nil when the helper isn't installed, approved or answering.
-    func read() -> [pid_t: ProcessCounters]? {
-        if buffer.isEmpty {
-            buffer = [ITMProcessCounters](repeating: ITMProcessCounters(), count: 8192)
-        }
-        let count = Int(itm_helper_snapshot(&buffer, Int32(buffer.count)))
-        guard count >= 0 else { return nil }
-        var result: [pid_t: ProcessCounters] = [:]
-        result.reserveCapacity(count)
-        for entry in buffer.prefix(count) {
-            result[entry.pid] = ProcessCounters(entry)
-        }
-        return result
-    }
-}

@@ -22,7 +22,11 @@ final class BatterySampler {
         let remaining = int("TimeRemaining")
         let adapter = property("AdapterDetails") as? [String: Any]
         let design = int("DesignCapacity")
-        let rawMax = int("AppleRawMaxCapacity")
+        // macOS 27 dropped the AppleRaw… capacities; BatteryData has the same figures.
+        let data = property("BatteryData") as? [String: Any]
+        let remainingMAh = int("AppleRawCurrentCapacity") ?? data?["RemainingCapacity"] as? Int
+        // Maximum Capacity as System Information shows it: nominal over design, at most 100%.
+        let nominal = int("NominalChargeCapacity") ?? data?["NominalChargeCapacity"] as? Int
         let isCharging = bool("IsCharging")
 
         return BatteryStats(
@@ -32,10 +36,10 @@ final class BatterySampler {
             isFullyCharged: bool("FullyCharged"),
             watts: voltage * amperage / 1_000_000,
             timeRemaining: remaining.flatMap { $0 > 0 && $0 < 65535 ? $0 : nil },
-            remainingWattHours: int("AppleRawCurrentCapacity").map { Double($0) * voltage / 1_000_000 },
+            remainingWattHours: remainingMAh.map { Double($0) * voltage / 1_000_000 },
             adapterWatts: adapter?["Watts"] as? Int,
             cycleCount: int("CycleCount"),
-            health: zip(rawMax, design).map { Double($0) / Double($1) },
+            health: zip(nominal, design).map { min(Double($0) / Double($1), 1) },
             temperature: int("Temperature").map { Double($0) / 100 }
         )
     }

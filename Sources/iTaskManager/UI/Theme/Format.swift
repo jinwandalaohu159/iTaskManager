@@ -58,6 +58,13 @@ enum Fmt {
         return String(format: "%.1f Wh", wattHours)
     }
 
+    static let celsiusTemplate = "00 °C"
+
+    /// Whole degrees: the sensors move by fractions every second, which would only flicker.
+    static func celsius(_ value: Double) -> String {
+        "\(Int(value.rounded())) °C"
+    }
+
     /// A clock in MHz as GHz with one decimal ("2.1 GHz").
     static func gigahertz(_ megahertz: Double) -> String {
         String(format: "%.1f GHz", megahertz / 1000)

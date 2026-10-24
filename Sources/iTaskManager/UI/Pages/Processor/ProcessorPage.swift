@@ -6,7 +6,6 @@ struct ProcessorPage: View {
             VStack(alignment: .leading, spacing: 16) {
                 CPUCard().reveal(0)
                 PerCoreCard().reveal(1)
-                GPUCard().reveal(2)
             }
             .padding(24)
         }
@@ -82,7 +81,7 @@ private struct PerCoreCard: View {
         let indices = monitor.chip.indices(of: kind)
         let usage = monitor.cpu?.perCore ?? []
         return VStack(alignment: .leading, spacing: 8) {
-            CoreGroupHeader(kind: kind, count: indices.count)
+            CoreGroupHeader(kind: kind, count: indices.count, temperature: monitor.temperatures.cluster(kind))
             VStack(spacing: 6) {
                 ForEach(Array(indices.enumerated()), id: \.element) { offset, index in
                     CoreRow(
@@ -96,34 +95,5 @@ private struct PerCoreCard: View {
             }
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-private struct GPUCard: View {
-    @Environment(SystemMonitor.self) private var monitor
-
-    var body: some View {
-        let gpu = monitor.gpu
-        GaugeChartCard(title: L("GPU 利用率")) {
-            RingGauge(rings: [Ring(id: "gpu", value: gpu?.utilization ?? 0, color: Palette.gpu)], lineWidth: 16) {
-                GaugeCenter(text: Fmt.percent(gpu?.utilization ?? 0), value: gpu?.utilization ?? 0, caption: "GPU")
-            }
-        } legend: {
-            LegendRow(color: Palette.gpu, label: L("功耗"), value: monitor.power.map { Fmt.watts($0.gpu) } ?? "—")
-            LegendRow(color: Palette.memory, label: L("占用内存"), value: Fmt.bytes(gpu?.memoryInUse ?? 0))
-        } facts: {
-            InlineStats(items: [
-                .init(label: L("核心"), value: "\(monitor.chip.gpuCores)", template: "00"),
-                .init(label: L("峰值"), value: Fmt.percent(monitor.gpuHistory.max), template: Fmt.percentTemplate),
-                .init(label: L("频率"), value: gpu?.frequency.map { "\(Int($0.rounded())) MHz" } ?? "—", template: "0000 MHz"),
-            ])
-            .font(.callout)
-        } chart: {
-            LiveChart(
-                series: [ChartSeries(id: "gpu", color: Palette.gpu, values: monitor.gpuHistory.values)],
-                maxValue: fractionCeiling(monitor.gpuHistory.values),
-                style: .full
-            )
-        }
     }
 }

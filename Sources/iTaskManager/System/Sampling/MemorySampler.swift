@@ -29,9 +29,12 @@ final class MemorySampler {
         return MemoryStats(
             total: total,
             app: (anonymous > purgeable ? anonymous - purgeable : 0) * page,
-            wired: UInt64(stats.wire_count) * page,
+            // Pages holding memory tags (MTE) are in use by the system but in none of the
+            // page queues; the rest of the tag storage region is already counted elsewhere.
+            wired: (UInt64(stats.wire_count) + stats.tag_storing_tag_storage_pages) * page,
             compressed: UInt64(stats.compressor_page_count) * page,
             cached: (UInt64(stats.external_page_count) + purgeable) * page,
+            free: (UInt64(stats.free_count) + UInt64(stats.speculative_count)) * page,
             swapUsed: swap?.xsu_used ?? 0,
             swapTotal: swap?.xsu_total ?? 0,
             pressure: pressure

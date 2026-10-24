@@ -14,24 +14,31 @@ final class SystemMonitor {
     private(set) var gpu: GPUStats?
     private(set) var power: PowerStats?
     private(set) var battery: BatteryStats?
+    private(set) var temperatures = Temperatures()
 
     // What this Mac can report; these change rarely, so page layouts can depend on them cheaply.
     private(set) var hasPowerReadings = false
     private(set) var hasBattery = false
+    /// Plugged in with the adapter's input readable, i.e. there's a charge flow to show.
+    private(set) var hasChargeFlow = false
 
     // Recent history, oldest first
     private(set) var cpuHistory = History()
     private(set) var coreHistories: [History]
     private(set) var memoryHistory = History()
     private(set) var gpuHistory = History()
+    private(set) var rendererHistory = History()
+    private(set) var tilerHistory = History()
+    private(set) var gpuTemperatureHistory = History()
     private(set) var systemPowerHistory = History()
     private(set) var cpuPowerHistory = History()
     private(set) var gpuPowerHistory = History()
+    /// While plugged in: what goes to the Mac and what goes into the battery.
+    private(set) var chargeSystemHistory = History()
+    private(set) var chargeBatteryHistory = History()
 
     /// Processes, only sampled while a window or the menu bar panel is open.
     let processes = ProcessStore()
-    /// Who holds the used memory, from the same process sample; nil while processes aren't sampled.
-    private(set) var memoryAttribution: MemoryAttribution?
     /// How many minutes back the apps' energy figures reach, up to an hour.
     private(set) var energyMinutes: Int?
 
@@ -62,7 +69,13 @@ final class SystemMonitor {
     /// Whole-system power: the SMC reading, but never less than the sum of the parts. The SMC
     /// value is smoothed and lags a sudden load, while the parts are measured per interval.
     var systemWatts: Double? {
-        power.map { max($0.system ?? 0, $0.cpu + $0.gpu + $0.ane + $0.dram) }
+        power.map { max($0.system ?? 0, $0.cpu + $0.gpu + $0.ane + ($0.dram ?? 0)) }
+    }
+
+    /// Where the adapter's power goes; nil on battery or when the adapter's input can't be read.
+    var chargeFlow: ChargeFlow? {
+        guard battery?.isPluggedIn == true, let input = power?.adapterInput else { return nil }
+        return ChargeFlow(input: input, system: min(systemWatts ?? 0, input))
     }
 
     // MARK: Foreground use
@@ -77,20 +90,24 @@ final class SystemMonitor {
         }
     }
 
-    /// `keepingData` leaves the last process list and memory attribution in place, for a
+    /// `keepingData` leaves the last process list in place, for a
     /// window that is only hidden and will show them again when uncovered.
     func endForegroundUse(keepingData: Bool = false) {
         foregroundDemand = max(0, foregroundDemand - 1)
         if foregroundDemand == 0 {
             if !keepingData {
                 processes.clear()
-                memoryAttribution = nil
             }
             updatePowerMode()
         }
     }
 
     private var isForeground: Bool { foregroundDemand > 0 }
+
+    /// A window or the panel is open, or the menu bar shows a temperature.
+    private var showsTemperatures: Bool {
+        isForeground || settings.menuBarCPUTemperature || settings.menuBarGPUTemperature
+    }
 
     // MARK: Sampling loop
 
@@ -103,7 +120,9 @@ final class SystemMonitor {
                 guard let self else { return }
                 if !self.screensAsleep {
                     let snapshot = await self.engine.sample(
-                        includeProcesses: self.isForeground, privileged: self.helper.isOn
+                        includeProcesses: self.isForeground,
+                        includeTemperatures: self.showsTemperatures,
+                        privileged: self.helper.isOn
                     )
                     guard !Task.isCancelled else { return }
                     self.apply(snapshot)
@@ -130,36 +149,56 @@ final class SystemMonitor {
     private func apply(_ snapshot: Snapshot) {
         interval = effectiveInterval
         lastSampleDate = snapshot.date
+        publishReadings(snapshot)
+        recordHistory(snapshot)
+        if let sampled = snapshot.processes, isForeground {
+            publishProcesses(sampled, snapshot: snapshot)
+        }
+    }
 
+    /// The latest readings, and what this Mac turns out to report. The capability flags only
+    /// change when they flip, so layouts that depend on them don't redraw every sample.
+    private func publishReadings(_ snapshot: Snapshot) {
         cpu = snapshot.cpu
         memory = snapshot.memory
         gpu = snapshot.gpu
         power = snapshot.power
+        if let sampled = snapshot.temperatures { temperatures = sampled }
         battery = snapshot.battery.map {
             liveBattery.adjust($0, power: snapshot.power, systemWatts: systemWatts, at: snapshot.date)
         }
         if hasPowerReadings != (snapshot.power != nil) { hasPowerReadings = snapshot.power != nil }
         if hasBattery != (snapshot.battery != nil) { hasBattery = snapshot.battery != nil }
+        if hasChargeFlow != (chargeFlow != nil) { hasChargeFlow = chargeFlow != nil }
+    }
 
+    /// One more point on every chart.
+    private func recordHistory(_ snapshot: Snapshot) {
         cpuHistory.append(snapshot.cpu.total)
         for (index, usage) in snapshot.cpu.perCore.enumerated() where index < coreHistories.count {
             coreHistories[index].append(usage)
         }
         memoryHistory.append(snapshot.memory.usedFraction)
         gpuHistory.append(snapshot.gpu?.utilization ?? 0)
+        rendererHistory.append(snapshot.gpu?.renderer ?? 0)
+        tilerHistory.append(snapshot.gpu?.tiler ?? 0)
+        if let gpu = snapshot.temperatures?.gpu { gpuTemperatureHistory.append(gpu.average) }
         if let power = snapshot.power, let watts = systemWatts {
             systemPowerHistory.append(watts)
             cpuPowerHistory.append(power.cpu)
             gpuPowerHistory.append(power.gpu)
         }
-
-        if let sampled = snapshot.processes, isForeground {
-            processes.update(with: sampled, options: ProcessGrouper.Options(settings: settings, chip: chip))
-            let attribution = MemoryAttribution(processes: sampled, complete: snapshot.processesPrivileged)
-            if attribution != memoryAttribution { memoryAttribution = attribution }
-            let minutes = snapshot.processEnergySpan.map { min(Int($0 / 60), 60) }
-            if minutes != energyMinutes { energyMinutes = minutes }
+        if let flow = chargeFlow {
+            chargeSystemHistory.append(flow.system)
+            chargeBatteryHistory.append(flow.battery)
         }
+    }
+
+    private func publishProcesses(_ sampled: [ProcessStats], snapshot: Snapshot) {
+        let options = ProcessGrouper.Options(settings: settings, chip: chip, clockScale: snapshot.cpu.clockScale)
+        processes.update(with: sampled, options: options)
+        let minutes = snapshot.processEnergySpan.map { min(Int($0 / 60), 60) }
+        if minutes != energyMinutes { energyMinutes = minutes }
     }
 
     private func observeEvents() {

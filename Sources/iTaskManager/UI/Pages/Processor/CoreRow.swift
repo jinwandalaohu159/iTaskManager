@@ -7,13 +7,14 @@ struct CoreRow: View {
     let value: Double
     let history: [Double]
     var ceiling: Double = 1
+    var labelWidth: CGFloat = 22
 
     var body: some View {
         HStack(spacing: 12) {
             Text(label)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 22, alignment: .leading)
+                .frame(width: labelWidth, alignment: .leading)
             LiveChart(series: [ChartSeries(id: label, color: color, values: history)], maxValue: ceiling)
                 .padding(.vertical, 6)
             Text(Fmt.percent(value))

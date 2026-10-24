@@ -67,6 +67,9 @@ struct MainWindow: View {
         .sheet(isPresented: Bindable(updater).presentsSheet) { UpdateSheet() }
         .toolbar {
             ToolbarItem(placement: .primaryAction) { UpdateToolbarButton() }
+            // An empty item after the button keeps it off the window's corner.
+            ToolbarItem(placement: .primaryAction) { Color.clear.frame(width: 1, height: 1) }
+                .sharedBackgroundVisibility(.hidden)
         }
         .onDisappear { DockPresence.windowClosed() }
         // Nothing on screen to keep up to date while hidden: sample like the menu bar does.
@@ -78,6 +81,7 @@ struct MainWindow: View {
         switch page {
         case .overview: OverviewPage()
         case .processor: ProcessorPage()
+        case .gpu: GPUPage()
         case .memory: MemoryPage()
         case .energy: EnergyPage()
         case .processes: ProcessesPage()

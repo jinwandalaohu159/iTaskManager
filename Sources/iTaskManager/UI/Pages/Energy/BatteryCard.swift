@@ -3,6 +3,7 @@ import SwiftUI
 /// Charge, state and the battery's own figures.
 struct BatteryCard: View {
     @Environment(SystemMonitor.self) private var monitor
+    @Environment(\.smoothMotion) private var smooth
 
     var body: some View {
         if let battery = monitor.battery {
@@ -25,9 +26,11 @@ struct BatteryCard: View {
                     )
                     if let adapter = battery.adapterWatts, battery.isPluggedIn {
                         InfoRow(label: L("电源适配器"), value: "\(adapter) W")
+                            .transition(.opacity)
                     }
                     if let minutes = battery.timeRemaining {
                         InfoRow(label: battery.isCharging ? L("充满还需") : L("剩余使用时间"), value: Fmt.minutes(minutes))
+                            .transition(.opacity)
                     }
                     if let health = battery.health {
                         InfoRow(label: L("最大容量"), value: Fmt.percent(min(health, 1)))
@@ -36,9 +39,12 @@ struct BatteryCard: View {
                         InfoRow(label: L("循环次数"), value: "\(cycles)")
                     }
                     if let temperature = battery.temperature {
-                        InfoRow(label: L("温度"), value: String(format: "%.1f °C", temperature))
+                        InfoRow(label: L("温度"), value: Fmt.celsius(temperature))
                     }
                 }
+                // Rows that come and go with plugging in or out fade instead of popping.
+                .animation(smooth ? .smooth(duration: 0.35) : nil, value: battery.isPluggedIn)
+                .animation(smooth ? .smooth(duration: 0.35) : nil, value: battery.timeRemaining == nil)
             }
             .frame(maxWidth: 360)
         }

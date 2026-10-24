@@ -65,13 +65,16 @@ static void handle(xpc_connection_t peer, xpc_object_t message) {
 }
 
 int main(void) {
+    const char *service = getenv("XPC_SERVICE_NAME");
+    if (!service) return 1;
+
     idle_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
     dispatch_source_set_event_handler(idle_timer, ^{ exit(0); });
     postpone_exit();
     dispatch_resume(idle_timer);
 
     xpc_connection_t listener = xpc_connection_create_mach_service(
-        ITM_HELPER_SERVICE, dispatch_get_main_queue(), XPC_CONNECTION_MACH_SERVICE_LISTENER);
+        service, dispatch_get_main_queue(), XPC_CONNECTION_MACH_SERVICE_LISTENER);
     xpc_connection_set_event_handler(listener, ^(xpc_object_t peer) {
         if (xpc_get_type(peer) != XPC_TYPE_CONNECTION) return;
         // Messages from anything but the app fail before they reach the handler. If the

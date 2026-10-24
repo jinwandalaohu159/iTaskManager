@@ -7,6 +7,7 @@ actor SamplerEngine {
     private let gpu = GPUSampler()
     private let power = PowerSampler()
     private let battery = BatterySampler()
+    private let thermal = ThermalSampler()
     private let processes = ProcessSampler()
 
     private var lastBattery: BatteryStats?
@@ -25,7 +26,8 @@ actor SamplerEngine {
     }
 
     /// `privileged`: read processes through the root helper, so system ones are included.
-    func sample(includeProcesses: Bool, privileged: Bool) async -> Snapshot {
+    /// `includeTemperatures`: read the temperature sensors; skipped while nothing shows them.
+    func sample(includeProcesses: Bool, includeTemperatures: Bool, privileged: Bool) async -> Snapshot {
         var processStats: [ProcessStats]?
         if includeProcesses {
             if processes.isStale(after: 5) {
@@ -45,6 +47,12 @@ actor SamplerEngine {
             lastBatteryDate = now
         }
 
+        let temperatures = includeTemperatures ? thermal.sample() : nil
+        // macOS 27 dropped the gauge's own temperature; the SMC's battery sensors stand in.
+        if lastBattery?.temperature == nil, let cells = temperatures?.battery {
+            lastBattery?.temperature = cells.average
+        }
+
         return Snapshot(
             date: now,
             cpu: cpu.sample(),
@@ -52,8 +60,8 @@ actor SamplerEngine {
             gpu: gpu.sample(),
             power: power.sample(),
             battery: lastBattery,
+            temperatures: temperatures,
             processes: processStats,
-            processesPrivileged: processStats != nil && processes.lastSampleWasPrivileged,
             processEnergySpan: processes.energySpan
         )
     }

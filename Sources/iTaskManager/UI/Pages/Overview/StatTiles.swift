@@ -86,10 +86,10 @@ struct GPUTile: View {
             value: Fmt.percent(gpu?.utilization ?? 0), numeric: gpu?.utilization ?? 0,
             detail: [
                 .init(label: L("核心"), value: "\(monitor.chip.gpuCores)", template: "00"),
-                .init(label: L("显存"), value: Fmt.bytes(gpu?.memoryInUse ?? 0), template: Fmt.bytesTemplate),
+                .init(label: L("占用内存"), value: Fmt.bytes(gpu?.memoryInUse ?? 0), template: Fmt.bytesTemplate),
             ],
             series: ChartSeries(id: "gpu", color: Palette.gpu, values: monitor.gpuHistory.values),
-            destination: .processor
+            destination: .gpu
         )
     }
 }

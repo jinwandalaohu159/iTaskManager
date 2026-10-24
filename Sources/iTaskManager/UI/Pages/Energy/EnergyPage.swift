@@ -2,14 +2,25 @@ import SwiftUI
 
 struct EnergyPage: View {
     @Environment(SystemMonitor.self) private var monitor
+    @Environment(\.smoothMotion) private var smooth
 
     var body: some View {
         // Depends only on what this Mac supports, so the page itself rarely re-renders.
         let hasPower = monitor.hasPowerReadings
+        let charging = monitor.hasChargeFlow
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 if hasPower {
-                    SystemPowerCard().reveal(0)
+                    // The charging card carries the gap above it, so rolling it up closes the gap too.
+                    VStack(spacing: 0) {
+                        SystemPowerCard()
+                        if charging {
+                            ChargingCard()
+                                .padding(.top, 16)
+                                .transition(.asymmetric(insertion: .opacity, removal: .collapseUp))
+                        }
+                    }
+                    .reveal(0)
                     HStack(alignment: .top, spacing: 16) {
                         ComponentPowerCard(title: L("CPU 功耗"), color: Palette.cpu, part: \.cpu, history: \.cpuPowerHistory)
                         ComponentPowerCard(title: L("GPU 功耗"), color: Palette.gpu, part: \.gpu, history: \.gpuPowerHistory)
@@ -28,6 +39,8 @@ struct EnergyPage: View {
                     .reveal(2)
             }
             .padding(24)
+            // Plugging in or out: the charging card fades and the cards below glide.
+            .animation(smooth ? .smooth(duration: 0.35) : nil, value: charging)
         }
     }
 
@@ -80,37 +93,6 @@ private struct SystemPowerCard: View {
                     format: Fmt.watts,
                     axisFormat: Fmt.axisWatts
                 )
-            }
-        }
-    }
-}
-
-private struct ComponentPowerCard: View {
-    let title: String
-    let color: Color
-    let part: KeyPath<PowerStats, Double>
-    let history: KeyPath<SystemMonitor, History>
-
-    @Environment(SystemMonitor.self) private var monitor
-
-    var body: some View {
-        let watts = monitor.power?[keyPath: part] ?? 0
-        let values = monitor[keyPath: history]
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(title).font(.headline)
-                    Spacer()
-                    LiveNumber(text: Fmt.watts(watts), value: watts, size: 20)
-                }
-                LiveChart(
-                    series: [ChartSeries(id: title, color: color, values: values.values)],
-                    maxValue: niceCeiling(values.max, minimum: 0.5),
-                    style: .full,
-                    format: Fmt.watts,
-                    axisFormat: Fmt.axisWatts
-                )
-                .frame(height: 110)
             }
         }
     }

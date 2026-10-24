@@ -31,7 +31,10 @@ struct CoreMetersCard: View {
     private func group(_ kind: CoreKind, usage: [Double], column: CGFloat) -> some View {
         let indices = monitor.chip.indices(of: kind)
         return VStack(alignment: .leading, spacing: 10) {
-            CoreGroupHeader(kind: kind, count: indices.count, average: monitor.chip.average(kind, in: usage))
+            CoreGroupHeader(
+                kind: kind, count: indices.count, average: monitor.chip.average(kind, in: usage),
+                temperature: monitor.temperatures.cluster(kind)
+            )
             HStack(alignment: .bottom, spacing: 0) {
                 ForEach(Array(indices.enumerated()), id: \.element) { offset, index in
                     let value = usage[safe: index] ?? 0

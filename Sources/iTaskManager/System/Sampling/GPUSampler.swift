@@ -25,16 +25,24 @@ final class GPUSampler {
             service, "PerformanceStatistics" as CFString, kCFAllocatorDefault, 0
         )?.takeRetainedValue() as? [String: Any]
         let memory = UInt64(stats?["In use system memory"] as? Int ?? 0)
+        let renderer = Self.fraction(stats?["Renderer Utilization %"])
+        let tiler = Self.fraction(stats?["Tiler Utilization %"])
 
         var reading = ITMGPUActivity()
         if let activity, itm_gpu_read(activity, &reading) {
             return GPUStats(
                 utilization: min(max(reading.utilization, 0), 1),
                 memoryInUse: memory,
-                frequency: reading.averageFrequency > 0 ? reading.averageFrequency : nil
+                frequency: reading.averageFrequency > 0 ? reading.averageFrequency : nil,
+                renderer: renderer,
+                tiler: tiler
             )
         }
-        guard let busy = stats?["Device Utilization %"] as? Int else { return nil }
-        return GPUStats(utilization: Double(min(max(busy, 0), 100)) / 100, memoryInUse: memory)
+        guard let busy = Self.fraction(stats?["Device Utilization %"]) else { return nil }
+        return GPUStats(utilization: busy, memoryInUse: memory, renderer: renderer, tiler: tiler)
+    }
+
+    private static func fraction(_ percent: Any?) -> Double? {
+        (percent as? Int).map { Double(min(max($0, 0), 100)) / 100 }
     }
 }

@@ -36,7 +36,7 @@ struct MemorySummary: View {
     }
 
     private var parts: [MemoryBreakdown.Part] {
-        monitor.memory.map { MemoryBreakdown.parts($0, monitor.memoryAttribution) } ?? []
+        monitor.memory.map { MemoryBreakdown.parts($0) } ?? []
     }
 
     private func donut(size: CGFloat) -> some View {
@@ -82,8 +82,6 @@ struct MemorySummary: View {
         let memory = monitor.memory
         InfoRow(label: L("已缓存文件"), value: Fmt.bytes(memory?.cached ?? 0),
                 info: L("最近读过的文件内容，不算在已使用里，需要时随时释放"))
-        InfoRow(label: L("被压缩"), value: Fmt.bytes(memory?.compressed ?? 0),
-                info: L("被压缩以节省空间的内存。它已经计入左侧各进程的占用，这里单独列出。"))
     }
 
     @ViewBuilder
@@ -91,6 +89,6 @@ struct MemorySummary: View {
         let memory = monitor.memory
         InfoRow(label: L("交换区"), value: "\(Fmt.bytes(memory?.swapUsed ?? 0)) / \(Fmt.bytes(memory?.swapTotal ?? 0))")
         InfoRow(label: L("GPU 占用", context: "memory"), value: Fmt.bytes(monitor.gpu?.memoryInUse ?? 0))
-        InfoRow(label: L("可用"), value: Fmt.bytes((memory?.total ?? 0) &- (memory?.used ?? 0)))
+        InfoRow(label: L("可用"), value: Fmt.bytes(memory?.available ?? 0))
     }
 }
