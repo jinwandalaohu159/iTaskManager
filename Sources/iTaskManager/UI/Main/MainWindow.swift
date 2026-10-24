@@ -40,10 +40,11 @@ struct MainWindow: View {
             GeometryReader { _ in
                 detail(for: page ?? settings.defaultPage)
                     .id(page)
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .offset(y: 8)),
-                        removal: .opacity
-                    ))
+                    // Opacity only: an offset moves the page's scroll view itself, which leaves it
+                    // scrolled a few points under the toolbar, and the toolbar then shows its
+                    // scrolled-under background (a grey bar that flickers as pages cross-fade).
+                    // The cards still rise in with `reveal`.
+                    .transition(.opacity)
             }
             .animation(smooth ? .smooth(duration: 0.32) : nil, value: page)
             .navigationTitle((page ?? settings.defaultPage).title)
@@ -86,7 +87,13 @@ struct MainWindow: View {
         case .memory: MemoryPage()
         case .energy: EnergyPage()
         case .processes: ProcessesPage()
-        case .settings: SettingsForm().frame(maxWidth: 680).frame(maxWidth: .infinity)
+        case .settings:
+            // The form's scroll view spans the window (so its edge effect does too); only the
+            // sections are held to 680 pt.
+            GeometryReader { proxy in
+                SettingsForm()
+                    .contentMargins(.horizontal, max((proxy.size.width - 680) / 2, 0), for: .scrollContent)
+            }
         }
     }
 }
